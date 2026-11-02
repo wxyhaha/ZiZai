@@ -57,9 +57,9 @@ const LAYOUT: Record<
   FallingViewport,
   { count: number; safeWidth: number; widthBasis: number; fontMin: number; fontMax: number; driftMin: number; driftMax: number }
 > = {
-  mobile: { count: 8, safeWidth: 0.68, widthBasis: 320, fontMin: 18, fontMax: 24, driftMin: 6, driftMax: 12 },
-  tablet: { count: 16, safeWidth: 0.5, widthBasis: 480, fontMin: 18, fontMax: 36, driftMin: 20, driftMax: 40 },
-  desktop: { count: 32, safeWidth: 0.42, widthBasis: 1024, fontMin: 18, fontMax: 45, driftMin: 20, driftMax: 60 },
+  mobile: { count: 18, safeWidth: 0.5, widthBasis: 320, fontMin: 24, fontMax: 36, driftMin: 8, driftMax: 18 },
+  tablet: { count: 24, safeWidth: 0.46, widthBasis: 480, fontMin: 26, fontMax: 44, driftMin: 14, driftMax: 32 },
+  desktop: { count: 48, safeWidth: 0.3, widthBasis: 1024, fontMin: 32, fontMax: 64, driftMin: 20, driftMax: 48 },
 }
 
 function isHanCharacter(char: string): boolean {
@@ -155,8 +155,23 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
     ),
     rand,
   )
-  const positions = Array.from({ length: count }, (_, index) => (index + rand()) / count)
-  shuffle(positions, rand)
+  const horizontalPositions = Array<number>(count)
+  const animationPhases = Array<number>(count)
+  for (const side of ['left', 'right'] as const) {
+    const sideIds = sides.flatMap((glyphSide, id) => (glyphSide === side ? [id] : []))
+    const sidePositions = shuffle(
+      sideIds.map((_, index) => (index + rand()) / sideIds.length),
+      rand,
+    )
+    const sidePhases = shuffle(
+      sideIds.map((_, index) => (index + rand()) / sideIds.length),
+      rand,
+    )
+    sideIds.forEach((id, index) => {
+      horizontalPositions[id] = sidePositions[index]
+      animationPhases[id] = sidePhases[index]
+    })
+  }
 
   return Array.from({ length: count }, (_, id) => {
     const fontId = fontPlan[id]
@@ -169,7 +184,7 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
     const minLeft = (margin / layout.widthBasis) * 100
     const maxLeft = ((edge - halfChar) / layout.widthBasis) * 100
     const clampedMaxLeft = Math.max(minLeft, maxLeft)
-    const safeLeft = minLeft + positions[id] * (clampedMaxLeft - minLeft)
+    const safeLeft = minLeft + horizontalPositions[id] * (clampedMaxLeft - minLeft)
     const left = sides[id] === 'left' ? safeLeft : 100 - safeLeft - (size / layout.widthBasis) * 100
     const duration = 24 + rand() * 24
     const fade = (size - layout.fontMin) / Math.max(1, layout.fontMax - layout.fontMin)
@@ -183,9 +198,9 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
       left: `${left.toFixed(2)}%`,
       size,
       duration,
-      delay: -positions[id] * duration,
+      delay: -animationPhases[id] * duration,
       drift: (sides[id] === 'left' ? -1 : 1) * drift,
-      opacity: Number((0.18 - fade * 0.13).toFixed(3)),
+      opacity: Number((0.55 - fade * 0.1).toFixed(3)),
       rotation: Number((-8 + rand() * 16).toFixed(2)),
     }
   })

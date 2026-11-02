@@ -97,9 +97,9 @@ describe('首页落字资源', () => {
 
 describe('落字随机布局', () => {
   it.each([
-    ['mobile', 8],
-    ['tablet', 16],
-    ['desktop', 32],
+    ['mobile', 18],
+    ['tablet', 24],
+    ['desktop', 48],
   ] as const)('%s viewports create %i balanced, varied glyphs', (viewport, count) => {
     const glyphs = buildGlyphs({ seed: 20261102, viewport })
     expect(glyphs).toHaveLength(count)
@@ -118,14 +118,14 @@ describe('落字随机布局', () => {
       expect(glyph.duration).toBeGreaterThanOrEqual(24)
       expect(glyph.duration).toBeLessThanOrEqual(48)
       const sizeLimits = {
-        mobile: [18, 24],
-        tablet: [18, 36],
-        desktop: [18, 45],
+        mobile: [24, 36],
+        tablet: [26, 44],
+        desktop: [32, 64],
       }[viewport]
       expect(glyph.size).toBeGreaterThanOrEqual(sizeLimits[0])
       expect(glyph.size).toBeLessThanOrEqual(sizeLimits[1])
-      expect(glyph.opacity).toBeGreaterThanOrEqual(0.05)
-      expect(glyph.opacity).toBeLessThanOrEqual(0.18)
+      expect(glyph.opacity).toBeGreaterThanOrEqual(0.45)
+      expect(glyph.opacity).toBeLessThanOrEqual(0.55)
       expect(glyph.rotation).toBeGreaterThanOrEqual(-8)
       expect(glyph.rotation).toBeLessThanOrEqual(8)
       if (glyph.side === 'left') expect(glyph.drift).toBeLessThan(0)
@@ -133,13 +133,13 @@ describe('落字随机布局', () => {
     }
   })
 
-  it('all four device pixel widths map to sparse responsive counts', () => {
+  it('device widths map to the intended responsive glyph counts', () => {
     const examples: Array<[number, FallingViewport, number]> = [
-      [320, 'mobile', 8],
-      [390, 'mobile', 8],
-      [768, 'tablet', 16],
-      [1024, 'desktop', 32],
-      [1440, 'desktop', 32],
+      [320, 'mobile', 18],
+      [390, 'mobile', 18],
+      [768, 'tablet', 24],
+      [1024, 'desktop', 48],
+      [1440, 'desktop', 48],
     ]
     for (const [width, viewport, count] of examples) {
       expect(viewportForWidth(width)).toBe(viewport)
@@ -150,7 +150,7 @@ describe('落字随机布局', () => {
   it('every glyph remains outside the central text-safe area, including its drift', () => {
     for (const viewport of ['mobile', 'tablet', 'desktop'] as const) {
       const basis = { mobile: 320, tablet: 480, desktop: 1024 }[viewport]
-      const edge = (1 - { mobile: 0.68, tablet: 0.5, desktop: 0.42 }[viewport]) * basis / 2
+      const edge = (1 - { mobile: 0.5, tablet: 0.46, desktop: 0.3 }[viewport]) * basis / 2
       const margin = { mobile: 8, tablet: 12, desktop: 16 }[viewport]
       for (const glyph of buildGlyphs({ seed: 123, viewport })) {
         const left = (Number.parseFloat(glyph.left) / 100) * basis
@@ -161,6 +161,18 @@ describe('落字随机布局', () => {
           expect(left + glyph.drift - margin).toBeGreaterThanOrEqual(basis - edge - 0.1)
         }
       }
+    }
+  })
+
+  it('spreads desktop glyphs across both outer regions', () => {
+    const glyphs = buildGlyphs({ seed: 20261102, viewport: 'desktop' })
+    for (const side of ['left', 'right'] as const) {
+      const sideGlyphs = glyphs.filter((glyph) => glyph.side === side)
+      const positions = sideGlyphs
+        .map((glyph) => Number.parseFloat(glyph.left))
+      expect(Math.max(...positions) - Math.min(...positions)).toBeGreaterThan(12)
+      const phases = sideGlyphs.map((glyph) => -glyph.delay / glyph.duration)
+      expect(Math.max(...phases) - Math.min(...phases)).toBeGreaterThan(0.8)
     }
   })
 
