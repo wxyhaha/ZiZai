@@ -38,11 +38,11 @@ export interface PaginationInput {
   measureCharacter?: (character: string, fontSize: number, fontFamily: string) => number
 }
 
-const HORIZONTAL_INLINE_PADDING = 80
-const HORIZONTAL_BLOCK_PADDING = 72
-const VERTICAL_INLINE_PADDING = 52
-const VERTICAL_BLOCK_PADDING = 62
-const TITLE_BLOCK_HEIGHT = 104
+const HORIZONTAL_INLINE_PADDING = 112
+const HORIZONTAL_BLOCK_PADDING = 92
+const VERTICAL_INLINE_PADDING = 104
+const VERTICAL_BLOCK_PADDING = 86
+const TITLE_BLOCK_HEIGHT = 116
 
 function createPage(index: number): BookPage {
   return { index, hasHeader: index === 0, paragraphs: [], columns: [] }
@@ -172,7 +172,7 @@ function paginateVertical(input: PaginationInput): BookPage[] {
     Math.min(input.contentWidth, pageWidth - VERTICAL_INLINE_PADDING),
   )
   const bodyColumnWidth = input.fontSize * input.lineHeight
-  const titleColumnWidth = 22 * 1.5
+  const titleColumnWidth = 20 * 1.6
   const metaColumnWidth = 13 * 1.6
   const pages = [createPage(0)]
   let usedWidth = 0
@@ -188,7 +188,7 @@ function paginateVertical(input: PaginationInput): BookPage[] {
     usedWidth += column.width
   }
 
-  splitVertical(input.title, input, 22, 0.14).forEach((text) => {
+  splitVertical(input.title, input, 20, 0.14).forEach((text) => {
     append({ kind: 'title', text, width: titleColumnWidth })
   })
   const metadata = [input.era, input.author].filter(Boolean).join(' · ')

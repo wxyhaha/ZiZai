@@ -58,7 +58,8 @@ describe('赏字书页', () => {
     short.findComponent(TextPickerPanel).vm.$emit('select', 'shan-ju-qiu-ming')
     await nextTick()
     expect(short.get('.book-spread').attributes('data-page-mode')).toBe('single')
-    expect(short.get('.book-nav__status').text()).toBe('1 / 1 页')
+    expect(short.find('.book-nav').exists()).toBe(false)
+    expect(short.get('.zz-sr-only').text()).toBe('1 / 1 页')
     short.unmount()
 
     useReadingState().reset()
@@ -75,6 +76,24 @@ describe('赏字书页', () => {
     expect(long.findComponent(CurvedPageTurn).exists()).toBe(false)
     expect(long.get('.sheet').attributes('data-page')).not.toBe(before)
     long.unmount()
+  })
+
+  it('页面最左侧与最右侧空白区可点击翻页，并随横竖排自动反转方向', async () => {
+    const wrapper = await mountStudio()
+    // 默认横排：右侧为下一组页面，左侧为上一组页面
+    const rightBtn = wrapper.get('.turn-trigger--right')
+    const leftBtn = wrapper.get('.turn-trigger--left')
+    expect(rightBtn.attributes('aria-label')).toBe('下一组页面')
+    expect(leftBtn.attributes('aria-label')).toBe('上一组页面')
+    expect(leftBtn.attributes('disabled')).toBeDefined()
+
+    // 切换至竖排：古籍自右向左读，左侧变为下一组页面，右侧变为上一组页面
+    const panel = wrapper.findComponent(TypographyPanel)
+    panel.vm.$emit('update:layout', 'vertical')
+    await nextTick()
+    expect(wrapper.get('.turn-trigger--left').attributes('aria-label')).toBe('下一组页面')
+    expect(wrapper.get('.turn-trigger--right').attributes('aria-label')).toBe('上一组页面')
+    wrapper.unmount()
   })
 
   it('切换字体或文稿会重新分页，并在文稿切换后回到第一页', async () => {

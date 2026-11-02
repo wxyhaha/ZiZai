@@ -1,11 +1,12 @@
-/** 书页上下预留的动画空间；投影最大抬升保留 8px 阴影余量。 */
-export const TURN_CLEARANCE = 40
+/** 书页上下预留的动画空间；投影最大抬升限制在 10px 内，保留 4px 余量。 */
+export const TURN_CLEARANCE = 14
 
 export function projectTurn(width: number, height: number, progress: number, fromRight: boolean, count: number) {
   const direction = fromRight ? 1 : -1
   const segment = width / count
   const lift = Math.sin(Math.PI * progress)
-  const distance = width * (1 + height / (2 * (TURN_CLEARANCE - 8)))
+  const maxExpansion = Math.max(4, TURN_CLEARANCE - 4)
+  const distance = width * (1 + height / (2 * maxExpansion))
   let x = direction * 2 * (1 - 2 * progress)
   let z = 0
   return Array.from({ length: count }, (_, index) => {

@@ -93,10 +93,10 @@ function onSlide(key: Control['key'], value: number[]) {
 }
 
 const DEFAULTS: Record<Control['key'], number> = {
-  fontSize: 22,
-  lineHeight: 2.2,
-  letterSpacing: 0.035,
-  contentWidth: 680,
+  fontSize: 19,
+  lineHeight: 2.4,
+  letterSpacing: 0.04,
+  contentWidth: 660,
 }
 
 function resetAll() {

@@ -16,12 +16,11 @@ const DEFAULT_STATE: ReadingState = {
   textId: defaultTextId,
   customText: null,
   layout: 'horizontal',
-  fontSize: 22,
-  lineHeight: 2.2,
-  letterSpacing: 0.035,
-  // 约 30 字/行。中文长文的舒适区间是 25–40 字，这里取中值偏窄，
-  // 更接近设计稿中「书页」的密度。
-  contentWidth: 680,
+  fontSize: 19,
+  lineHeight: 2.4,
+  letterSpacing: 0.04,
+  // 约 26–28 字/行。中文长文的舒适区间是 25–40 字，留白更疏朗大气。
+  contentWidth: 660,
 }
 
 /** 题写字数上限。超出部分不进入渲染，避免超长文本拖慢排版。 */

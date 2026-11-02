@@ -179,6 +179,50 @@ function moveSpread(forward: boolean) {
 function previousSpread() { moveSpread(false) }
 function nextSpread() { moveSpread(true) }
 
+const isVertical = computed(() => props.layout === 'vertical')
+
+const leftAriaLabel = computed(() => (isVertical.value ? '下一组页面' : '上一组页面'))
+const rightAriaLabel = computed(() => (isVertical.value ? '上一组页面' : '下一组页面'))
+
+const leftDisabled = computed(() => {
+  if (turn.value) return true
+  return isVertical.value ? !canGoForward.value : !canGoBack.value
+})
+
+const rightDisabled = computed(() => {
+  if (turn.value) return true
+  return isVertical.value ? !canGoBack.value : !canGoForward.value
+})
+
+function onLeftClick() {
+  if (leftDisabled.value) return
+  if (isVertical.value) {
+    nextSpread()
+  } else {
+    previousSpread()
+  }
+}
+
+function onRightClick() {
+  if (rightDisabled.value) return
+  if (isVertical.value) {
+    previousSpread()
+  } else {
+    nextSpread()
+  }
+}
+
+function onKeyDown(event: KeyboardEvent) {
+  if (event.target instanceof HTMLElement && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA')) {
+    return
+  }
+  if (event.key === 'ArrowLeft') {
+    onLeftClick()
+  } else if (event.key === 'ArrowRight') {
+    onRightClick()
+  }
+}
+
 watch(
   () => [
     props.title,
@@ -203,6 +247,7 @@ onMounted(() => {
     observer.observe(stage.value)
   }
   window.addEventListener('resize', updateSize)
+  window.addEventListener('keydown', onKeyDown)
 })
 
 onBeforeUnmount(() => {
@@ -210,6 +255,7 @@ onBeforeUnmount(() => {
   finishTurn()
   observer?.disconnect()
   window.removeEventListener('resize', updateSize)
+  window.removeEventListener('keydown', onKeyDown)
 })
 </script>
 
@@ -244,37 +290,46 @@ onBeforeUnmount(() => {
           :sheet-props="sheetProps"
           @finish="finishTurn"
         />
+
+        <!-- 页面侧边空白翻页热区（最左侧与最右侧无文字区域点击翻页） -->
+        <button
+          v-if="pages.length > 1"
+          type="button"
+          class="turn-trigger turn-trigger--left"
+          :class="{ 'turn-trigger--disabled': leftDisabled }"
+          :aria-label="leftAriaLabel"
+          :disabled="leftDisabled"
+          @click="onLeftClick"
+        >
+          <span class="turn-trigger__indicator" aria-hidden="true">
+            <ChevronLeft :size="19" />
+          </span>
+        </button>
+
+        <button
+          v-if="pages.length > 1"
+          type="button"
+          class="turn-trigger turn-trigger--right"
+          :class="{ 'turn-trigger--disabled': rightDisabled }"
+          :aria-label="rightAriaLabel"
+          :disabled="rightDisabled"
+          @click="onRightClick"
+        >
+          <span class="turn-trigger__indicator" aria-hidden="true">
+            <ChevronRight :size="19" />
+          </span>
+        </button>
       </div>
     </div>
 
-    <nav class="book-nav" aria-label="书页翻页">
-      <button
-        v-if="pages.length > 1"
-        type="button"
-        class="book-nav__button"
-        aria-label="上一组页面"
-        :disabled="!canGoBack || !!turn"
-        @click="previousSpread"
-      >
-        <ChevronLeft :size="17" aria-hidden="true" />
-      </button>
-      <output class="book-nav__status" aria-live="polite">{{ pageStatus }}</output>
-      <button
-        v-if="pages.length > 1"
-        type="button"
-        class="book-nav__button"
-        aria-label="下一组页面"
-        :disabled="!canGoForward || !!turn"
-        @click="nextSpread"
-      >
-        <ChevronRight :size="17" aria-hidden="true" />
-      </button>
-    </nav>
+    <!-- 视觉完全隐藏页码，保留屏幕阅读器无障碍播报 -->
+    <p class="zz-sr-only" aria-live="polite">{{ pageStatus }}</p>
   </section>
 </template>
 
 <style scoped lang="scss">
 .book-viewer {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
@@ -282,6 +337,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .book-viewer__stage {
@@ -340,50 +396,79 @@ onBeforeUnmount(() => {
   }
 }
 
-.book-nav {
-  flex: none;
+.turn-trigger {
+  --trigger-width: clamp(52px, 5.5vw, 72px);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  width: var(--trigger-width);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 13px;
-  min-height: 36px;
-  color: var(--zz-muted);
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition: opacity var(--zz-dur-fast) var(--zz-ease-out);
 
-  &__button {
+  &--left {
+    // 收束在书页内边缘，不超出书本容器，杜绝与外部工具栏重叠
+    left: 0;
+    justify-content: flex-start;
+    padding-left: 12px;
+  }
+
+  &--right {
+    right: 0;
+    justify-content: flex-end;
+    padding-right: 12px;
+  }
+
+  &--disabled {
+    cursor: default;
+    pointer-events: none;
+
+    .turn-trigger__indicator {
+      opacity: 0 !important;
+    }
+  }
+
+  &__indicator {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
+    color: var(--zz-muted);
+    background: rgb(247 244 238 / 85%);
+    box-shadow: 0 4px 12px rgb(58 47 35 / 10%), 0 0 0 1px var(--zz-line-soft);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transform: scale(0.9);
     transition:
+      opacity var(--zz-dur-fast) var(--zz-ease-out),
+      transform var(--zz-dur-fast) var(--zz-ease-out),
       color var(--zz-dur-fast) var(--zz-ease-out),
       background-color var(--zz-dur-fast) var(--zz-ease-out);
-
-    &:hover:not(:disabled) {
-      color: var(--zz-accent);
-      background: var(--zz-accent-wash);
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: default;
-    }
-
-    &:focus-visible {
-      outline: var(--zz-focus-ring);
-      outline-offset: 2px;
-    }
   }
 
-  &__status {
-    min-width: 74px;
-    text-align: center;
-    font-family: var(--zz-font-serif);
-    font-size: var(--zz-text-2xs);
-    letter-spacing: var(--zz-track-tight);
-    font-variant-numeric: tabular-nums;
+  &:hover:not(&--disabled) .turn-trigger__indicator {
+    opacity: 0.85;
+    transform: scale(1);
+    color: var(--zz-accent);
+    background: var(--zz-paper-reading);
+  }
+
+  &:focus-visible .turn-trigger__indicator {
+    opacity: 1;
+    transform: scale(1);
+    outline: var(--zz-focus-ring);
+    outline-offset: 2px;
   }
 }
+
 .book-blank {
   flex: 1 1 0;
   height: 100%;

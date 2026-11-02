@@ -74,8 +74,6 @@ const styleVars = computed(() => ({
         </div>
       </div>
     </div>
-
-    <span class="sheet__folio" aria-hidden="true">{{ props.page.index + 1 }}</span>
   </article>
 </template>
 
@@ -156,14 +154,14 @@ const styleVars = computed(() => ({
     flex-direction: column;
     align-items: center;
     overflow: hidden;
-    padding: 36px 40px;
+    padding: 48px 56px 44px;
   }
 
   &__head {
     flex: none;
     width: min(100%, var(--reading-width));
     text-align: center;
-    margin: 0 0 26px;
+    margin: 0 0 36px;
   }
 
   &__title {
@@ -177,7 +175,7 @@ const styleVars = computed(() => ({
   }
 
   &__meta {
-    margin-top: 8px;
+    margin-top: 10px;
     font-family: var(--zz-font-serif);
     font-size: var(--zz-text-sm);
     letter-spacing: 0.18em;
@@ -213,8 +211,8 @@ const styleVars = computed(() => ({
     color: var(--zz-ink-body);
 
     &--title {
-      font-size: 22px;
-      line-height: 1.5;
+      font-size: 20px;
+      line-height: 1.6;
       letter-spacing: 0.14em;
       color: var(--zz-ink);
     }
@@ -235,21 +233,6 @@ const styleVars = computed(() => ({
       color: transparent;
     }
   }
-
-  &__folio {
-    position: absolute;
-    z-index: 1;
-    right: 0;
-    bottom: 16px;
-    left: 0;
-    text-align: center;
-    font-family: var(--zz-font-serif);
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.12em;
-    color: var(--zz-muted-soft);
-    opacity: 0.7;
-  }
 }
 
 .prose {
@@ -268,7 +251,7 @@ const styleVars = computed(() => ({
   }
 
   p.prose__paragraph--end {
-    margin-bottom: 1.1em;
+    margin-bottom: 1.3em;
   }
 
   p:last-child {
@@ -279,7 +262,7 @@ const styleVars = computed(() => ({
 .sheet--vertical {
   .sheet__inner--vertical {
     align-items: stretch;
-    padding: 24px 26px 38px;
+    padding: 44px 52px 42px;
   }
 }
 </style>
