@@ -3,19 +3,19 @@
 > 给下一位接手「字在 ZiZai」的开发者 / AI。
 > 先读这一份、`docs/issues.md` 与 `docs/implementation-plan.md`，再按讨论确定的范围继续开发。
 >
-> 最后更新：2026-11-02（问题登记、字体完整性要求与首次仓库提交）
+> 最后更新：2026-11-02（首页极简化与随机落字系统升级）
 
-> 2026-11-02 审查补充：已登记 [问题清单](issues.md)，包含入口映射、竖排参数、收藏、字体提取及开发效率问题。下文历史完成标记不能覆盖这些已知问题；继续开发前先读清单。完整字体的新要求已确认，但转换实现尚未调整。
+> 2026-11-02 状态补充：问题清单见 [issues.md](issues.md)。首页已精简为品牌标题与 CTA，并新增四款字体的独立随机落字子集；完整字体要求已确认但转换尚未调整。落字子集不是完整字体，也不覆盖全量字体的长期要求。
 
 ---
 
 ## 一、三十秒了解这个项目
 
-**字在（ZiZai）** —— 中文古风字体与排版艺术网站。主张「字有风骨，自在其间」。
+**字在（ZiZai）** —— 中文字体与纸上排版体验网站。
 视觉是现代极简 + 传统中文书籍美学。
 
 **只有两个一级页面**：
-- `/` 首页：100dvh 单屏沉浸式场景（纸纹 + 落字 + 品牌标题 + 入字间 CTA）
+- `/` 首页：100dvh 单屏品牌入口（纸纹 + 四款真实字体的随机落字 +「字在」标题 +「入字间」CTA）
 - `/studio` 赏字：一张可调字体 / 文稿 / 版式的阅读书页
 
 字体图鉴、古文选集、版式、题写、对照、收藏**全部**通过抽屉 / 浮层 / 局部模式承载。
@@ -36,13 +36,13 @@ npm run dev          # http://localhost:5173
 ```bash
 npm run typecheck    # 0 error
 npm run lint         # 0 error / 0 warning
-npm run test         # 78 passed
+npm run test         # 82 passed
 npm run build        # ✓ built
 ```
 
 当前四项**均已实测通过**。
 
-> 只有在重新生成字体子集时才需要 Python 3.10+ 与 `fonttools` / `brotli`。
+> 只有重新生成字体资源时才需要 Python 3.10+ 与 `fonttools` / `brotli`；首页单独使用 `npm run fonts:home`。
 > 日常开发、构建、测试都不依赖 Python。
 
 ---
@@ -53,7 +53,10 @@ npm run build        # ✓ built
 |---|---|
 | 颜色 / 字号 / 间距 / 动效曲线 | `src/styles/tokens.scss`（**唯一真相来源**） |
 | 首页布局与主视觉 | `src/views/HomeView.vue` |
-| 落字动画 | `src/composables/useFallingGlyphs.ts` + `src/components/home/FallingGlyphs.vue` |
+| 落字动画与随机逻辑 | `src/composables/useFallingGlyphs.ts` + `src/components/home/FallingGlyphs.vue` |
+| 首页真实 cmap 字池 | `src/data/home-glyph-pools.json`（生成文件） |
+| 首页专用字体子集 | `src/assets/fonts/home/`（生成文件，每款 1,200 汉字） |
+| 首页字体覆盖 CSS | `src/styles/fonts/home-glyphs.scss`（生成文件） |
 | 页头与导航 | `src/components/SiteHeader.vue` |
 | 「···」关于弹层 | `src/components/shell/MoreMenu.vue`（Reka UI Dialog） |
 | 阅读页布局与书页 | `src/views/ReadingView.vue` |
@@ -63,7 +66,8 @@ npm run build        # ✓ built
 | 类型契约 | `src/types/{font,text,reading}.ts` |
 | 路由 | `src/router/index.ts` |
 | 字体 `@font-face` | `src/styles/fonts/*.scss`（**自动生成，勿手改**） |
-| 字体子集生成 | `scripts/build-font-subsets.py` |
+| 赏字字体子集生成 | `scripts/build-font-subsets.py` |
+| 首页落字字体生成 | `scripts/build-home-glyph-fonts.py`，运行 `npm run fonts:home` |
 
 ---
 
@@ -128,9 +132,9 @@ npm run build        # ✓ built
 
 ### 可变字体默认字重可能很细
 
-思源宋体可变字体默认轴值是 **200（ExtraLight）**。
-`scripts/build-font-subsets.py` 已处理：品牌子集收窄到 400–500，
-阅读子集钉成静态 400 / 500。**如果你换字体源，务必检查这一点。**
+思源宋体可变字体默认轴值是 **200（ExtraLight）**。阅读子集的字重处理仍由
+`scripts/build-font-subsets.py` 负责；首页品牌字体是单字重汇文明朝体（400），
+首页 Noto 落字子集保留 `wght` 轴。**如果你换字体源，务必检查这一点。**
 
 ### 测试间的状态污染
 
@@ -144,10 +148,10 @@ npm run build        # ✓ built
 | 阶段 | 状态 |
 |---|---|
 | A 项目初始化 | ✅ 完成 |
-| B 设计系统 + 首页 | ✅ 完成 |
+| B 设计系统 + 首页 | ✅ 首页已精简；随机落字使用四款真实字体专用子集 |
 | C 赏字核心 | ✅ 全部完成（字体切换 / 古文切换 / 横竖排 / 排版调整 / 题写 / 工具轨） |
 | D 辅助功能 | ✅ 主体完成（图鉴抽屉、选集抽屉、排版面板、题写面板、双字体对照、本地收藏） |
-| E 测试与优化 | 🟡 78 个单元测试全部通过；E2E 与跨浏览器竖排待补 |
+| E 测试与优化 | 🟡 本轮 82 个单元测试通过；E2E 与跨浏览器竖排待补 |
 
 ---
 
@@ -166,13 +170,13 @@ npm run build        # ✓ built
 
 | # | 事项 | 决定与落地 |
 |---|---|---|
-| 1 | **汇文明朝体的授权** | 经核实（CC0 1.0 + Public Domain），已设为全站主字体，提供内容子集与 GB2312 完整字体。 |
+| 1 | **汇文明朝体的授权** | 经核实（CC0 1.0 + Public Domain），已设为全站主字体；现有名为 `full` 的文件仍是 GB2312 范围版本。 |
 | 2 | **自定义文字的缺字策略** | 采用「下载完整字体」策略，结合覆盖表在题写面板提供实时检测与一键按需加载。 |
-| 3 | **完整保留原字体** | 新要求已确认：全量 WOFF2 保留原字体全部字符、字形与原有排版/可变轴能力。现有 GB2312 版本尚未替换，首屏子集与加载时机待讨论。 |
+| 3 | **完整保留原字体** | 新要求已确认：全量 WOFF2 保留原字体全部字符、字形与原有排版/可变轴能力。现有 GB2312 版本尚未替换；首页展示子集与全量转换分离。 |
 
 | # | 尚待讨论的事项 | 影响 |
 |---|---|---|
-| 1 | 全量字体与首屏子集如何配合、何时加载 | 在完整性要求下控制首次下载与切换等待 |
+| 1 | 全量字体转换实现及完整性核验 | 保留字符、字形、排版表与可变轴 |
 | 2 | 问题修复顺序及关键行为测试 | 优先修实际用户操作结果，避免重复全套验收 |
 | 3 | 是否引入小规模 Playwright 检查 | 用关键路径自动验证替代对应手工回归 |
 
@@ -185,22 +189,23 @@ zizai/
 ├── README.md                       ← 项目说明与命令
 ├── docs/
 │   ├── implementation-plan.md      ← 阶段计划与任务状态
-│   ├── decisions.md                ← 12 条 ADR
-│   ├── progress.md                 ← 第 1 轮详细记录与验证结果
+│   ├── decisions.md                ← 架构决策记录（ADR）
+│   ├── progress.md                 ← 分轮记录与验证结果
 │   ├── design-system.md            ← 落地版设计规范
 │   ├── font-licenses.md            ← 字体授权（含未核实项的处理方式）
 │   ├── handoff.md                  ← 本文件
 │   └── design-reference/           ← 用户原始设计资料（只读，勿改）
 ├── scripts/
 │   ├── build-font-subsets.py
+│   ├── build-home-glyph-fonts.py
 │   └── font-subset-report.json
 ├── src/
-│   ├── assets/fonts/{brand,lxgw-wenkai,zhuque-fangsong,noto-serif-sc}/
+│   ├── assets/fonts/{brand,home,lxgw-wenkai,zhuque-fangsong,noto-serif-sc}/
 │   ├── components/{SiteHeader.vue,home/,shell/}
 │   ├── composables/{useReadingState,useFallingGlyphs,useReducedMotion,useNavMenu}.ts
-│   ├── data/{fonts,texts}.ts
+│   ├── data/{fonts,texts}.ts + home-glyph-pools.json
 │   ├── router/index.ts
-│   ├── styles/{tokens,global,_breakpoints}.scss + fonts/{brand,reading-fonts}.scss
+│   ├── styles/{tokens,global,_breakpoints}.scss + fonts/{brand,reading-fonts,home-glyphs}.scss
 │   ├── types/{font,text,reading,index}.ts
 │   ├── views/{HomeView,ReadingView,NotFoundView}.vue
 │   ├── App.vue
@@ -208,5 +213,4 @@ zizai/
 └── tests/{data,home,reading}.spec.ts
 ```
 
-**没有远程仓库，没有部署。** 用户明确要求不要自动创建或修改远程 GitHub 仓库、
-不要部署项目。若后续需要，必须先取得明确授权。
+当前 `main` 已跟踪 `origin/main`；本地预览 `http://127.0.0.1:5173/` 不是远程部署。

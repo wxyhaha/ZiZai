@@ -17,7 +17,6 @@
   --zz-ink: #322e2a;
   --zz-ink-body: #443a32;
   --zz-ink-soft: #5c5046;
-  --zz-ink-tagline: #5e534a;
   --zz-muted: #897e70;
   --zz-muted-soft: #908478;
   --zz-drift: #b4a694;
@@ -32,8 +31,8 @@
   --zz-accent-line: #c3a69a;
 
   /* ---- 字体 ----
-     'ZiZai Brand Serif' 是随首屏加载的展示子集（汇文明朝体，约 90 kB，
-     只覆盖首页/页头/页脚/关于弹层的文案）。
+     'ZiZai Brand Serif' 是随首屏加载的汇文明朝体展示子集，覆盖首页标题、页头和关于弹层。
+     首页背景落字使用单独的多字体子集，不与品牌标题共用字体族。
      'Huiwen Mincho' / 'Noto Serif SC' 随赏字路由懒加载，作为正文与 UI 兜底。
      整条链都是明朝/宋体风格，任何一环缺失都不会掉成黑体或方块。 */
   --zz-font-serif: 'ZiZai Brand Serif', 'Huiwen Mincho', 'Noto Serif SC', 'Songti SC', 'STSong',

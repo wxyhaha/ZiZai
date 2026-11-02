@@ -1,123 +1,222 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import homeGlyphPools from '@/data/home-glyph-pools.json'
+import { getFont } from '@/data/fonts'
 import { useReducedMotion } from './useReducedMotion'
 
+export type FallingFontId = keyof typeof homeGlyphPools.fonts
+export type FallingViewport = 'mobile' | 'tablet' | 'desktop'
+export type FallingSide = 'left' | 'right'
+
 export interface FallingGlyph {
-  /** 唯一 key */
   id: number
-  /** 单个汉字 */
   char: string
-  /** 水平位置，百分比字符串 */
+  fontId: FallingFontId
+  fontFamily: string
+  side: FallingSide
   left: string
-  /** 字号 px */
   size: number
-  /** 单次下落时长（秒） */
   duration: number
-  /** 负延迟：让首屏就已经有字在半空，避免「开场空场」 */
   delay: number
-  /** 终点横向漂移 px，左负右正 */
   drift: number
-  /** 最大不透明度 */
   opacity: number
+  rotation: number
 }
 
-/** 首页背景用的字池：都取自站内古文与品牌语的意象，不做随机乱码。 */
-const POOL = [
-  '月', '书', '风', '墨', '云', '竹', '山', '诗', '纸', '雨',
-  '字', '笺', '砚', '松', '泉', '秋', '檐', '雪', '灯', '窗',
-]
+export interface FallingFontWeights {
+  [fontId: string]: number
+}
 
-/**
- * 一个可复现的伪随机数发生器（mulberry32）。
- * 固定种子让每次进首页的落字构型一致，避免刷新时视觉跳跃。
- */
-function createRandom(seed: number) {
-  let a = seed >>> 0
+interface FontPool {
+  id: FallingFontId
+  family: string
+  chars: string[]
+  weight: number
+}
+
+export interface BuildGlyphsOptions {
+  seed: number
+  viewport: FallingViewport
+  count?: number
+  fontWeights?: FallingFontWeights
+}
+
+const DEFAULT_FONT_WEIGHTS: Record<FallingFontId, number> = Object.fromEntries(
+  Object.keys(homeGlyphPools.fonts).map((id) => [id, 1]),
+) as Record<FallingFontId, number>
+
+const FONT_POOLS: FontPool[] = Object.entries(homeGlyphPools.fonts)
+  .map(([id, entry]) => ({
+    id: id as FallingFontId,
+    family: `ZiZai Falling ${getFont(id).latinName}`,
+    chars: Array.from(entry.chars).filter(isHanCharacter),
+    weight: DEFAULT_FONT_WEIGHTS[id as FallingFontId] ?? 1,
+  }))
+  .filter((pool) => pool.chars.length > 0)
+
+const LAYOUT: Record<
+  FallingViewport,
+  { count: number; safeWidth: number; widthBasis: number; fontMin: number; fontMax: number; driftMin: number; driftMax: number }
+> = {
+  mobile: { count: 8, safeWidth: 0.68, widthBasis: 320, fontMin: 18, fontMax: 24, driftMin: 6, driftMax: 12 },
+  tablet: { count: 16, safeWidth: 0.5, widthBasis: 480, fontMin: 18, fontMax: 36, driftMin: 20, driftMax: 40 },
+  desktop: { count: 32, safeWidth: 0.42, widthBasis: 1024, fontMin: 18, fontMax: 45, driftMin: 20, driftMax: 60 },
+}
+
+function isHanCharacter(char: string): boolean {
+  const codepoint = char.codePointAt(0)
+  if (codepoint === undefined) return false
+  return (
+    (codepoint >= 0x3400 && codepoint <= 0x4dbf) ||
+    (codepoint >= 0x4e00 && codepoint <= 0x9fff) ||
+    (codepoint >= 0xf900 && codepoint <= 0xfaff) ||
+    (codepoint >= 0x20000 && codepoint <= 0x2a6df) ||
+    (codepoint >= 0x2a700 && codepoint <= 0x2b73f) ||
+    (codepoint >= 0x2b740 && codepoint <= 0x2b81f) ||
+    (codepoint >= 0x2b820 && codepoint <= 0x2ceaf) ||
+    (codepoint >= 0x2ceb0 && codepoint <= 0x2ebef) ||
+    (codepoint >= 0x2ebf0 && codepoint <= 0x2ee5f) ||
+    (codepoint >= 0x2f800 && codepoint <= 0x2fa1f) ||
+    (codepoint >= 0x30000 && codepoint <= 0x3134f) ||
+    (codepoint >= 0x31350 && codepoint <= 0x323af) ||
+    (codepoint >= 0x323b0 && codepoint <= 0x3347f)
+  )
+}
+
+function createRandom(seed: number): () => number {
+  let value = seed >>> 0
   return () => {
-    a = (a + 0x6d2b79f5) >>> 0
-    let t = a
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    value = (value + 0x6d2b79f5) >>> 0
+    let next = value
+    next = Math.imul(next ^ (next >>> 15), next | 1)
+    next ^= next + Math.imul(next ^ (next >>> 7), next | 61)
+    return ((next ^ (next >>> 14)) >>> 0) / 4294967296
   }
 }
 
-/**
- * 生成落字构型。
- *
- * 布局约束（与 DESIGN_SYSTEM §6 一致）：
- * - 只落在两侧的「字道」里，中央 40% 宽的阅读区永远留空，落字不会遮挡标题与 CTA；
- * - 数量克制，桌面 14 个、平板 9 个、手机 5 个；
- * - 每个字时长 26–46 秒，负延迟铺满整个周期，所以任意时刻都有字在空中。
- */
-function buildGlyphs(count: number, seed = 20261102): FallingGlyph[] {
+function randomSeed(): number {
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    return crypto.getRandomValues(new Uint32Array(1))[0]
+  }
+  return Math.floor(Math.random() * 0x100000000) >>> 0
+}
+
+function shuffle<T>(items: T[], rand: () => number): T[] {
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    const next = Math.floor(rand() * (index + 1))
+    ;[items[index], items[next]] = [items[next], items[index]]
+  }
+  return items
+}
+
+function chooseWeighted(pool: FontPool[], rand: () => number): FontPool {
+  const total = pool.reduce((sum, entry) => sum + entry.weight, 0)
+  let remaining = rand() * total
+  for (const entry of pool) {
+    remaining -= entry.weight
+    if (remaining < 0) return entry
+  }
+  return pool[pool.length - 1]
+}
+
+export function viewportForWidth(width: number): FallingViewport {
+  if (width < 480) return 'mobile'
+  if (width < 1024) return 'tablet'
+  return 'desktop'
+}
+
+export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
+  const { seed, viewport } = options
+  const layout = LAYOUT[viewport]
+  const count = Math.max(0, Math.floor(options.count ?? layout.count))
+  if (count === 0 || FONT_POOLS.length === 0) return []
+
+  const configuredWeights = options.fontWeights ?? DEFAULT_FONT_WEIGHTS
+  const weightedPools = FONT_POOLS.map((pool) => ({
+    ...pool,
+    weight: configuredWeights[pool.id] ?? 0,
+  })).filter((pool) => Number.isFinite(pool.weight) && pool.weight > 0)
+  if (weightedPools.length === 0) return []
+
   const rand = createRandom(seed)
-  const glyphs: FallingGlyph[] = []
-  // 左右各半，各自在 0–26% 与 74–100% 区间内散开
-  const lanes = [
-    [2, 9, 15, 21, 27],
-    [73, 79, 85, 91, 97],
-    [4, 12, 19, 76, 83, 92],
-    [6, 25, 74, 94],
-  ]
+  const fontPlan = shuffle(
+    [
+      ...weightedPools.slice(0, count).map((pool) => pool.id),
+      ...Array.from({ length: Math.max(0, count - weightedPools.length) }, () =>
+        chooseWeighted(weightedPools, rand).id,
+      ),
+    ],
+    rand,
+  )
 
-  for (let i = 0; i < count; i += 1) {
-    const laneGroup = lanes[i % lanes.length]
-    const left = laneGroup[Math.floor(rand() * laneGroup.length)]
-    const size = 16 + Math.round(rand() * 30)
-    glyphs.push({
-      id: i,
-      char: POOL[Math.floor(rand() * POOL.length)],
-      // 同一车道内做 ±2% 抖动，避免排成一条竖线
-      left: `${(left + (rand() - 0.5) * 4).toFixed(2)}%`,
+  const firstSide: FallingSide = rand() < 0.5 ? 'left' : 'right'
+  const sides = shuffle(
+    Array.from({ length: count }, (_, index) =>
+      (index % 2 === 0 ? firstSide : firstSide === 'left' ? 'right' : 'left') as FallingSide,
+    ),
+    rand,
+  )
+  const positions = Array.from({ length: count }, (_, index) => (index + rand()) / count)
+  shuffle(positions, rand)
+
+  return Array.from({ length: count }, (_, id) => {
+    const fontId = fontPlan[id]
+    const pool = weightedPools.find((entry) => entry.id === fontId)!
+    const size = layout.fontMin + Math.round(rand() * (layout.fontMax - layout.fontMin))
+    const drift = Math.round(layout.driftMin + rand() * (layout.driftMax - layout.driftMin))
+    const margin = viewport === 'mobile' ? 8 : viewport === 'tablet' ? 12 : 16
+    const edge = ((1 - layout.safeWidth) / 2) * layout.widthBasis
+    const halfChar = size + drift + margin
+    const minLeft = (margin / layout.widthBasis) * 100
+    const maxLeft = ((edge - halfChar) / layout.widthBasis) * 100
+    const clampedMaxLeft = Math.max(minLeft, maxLeft)
+    const safeLeft = minLeft + positions[id] * (clampedMaxLeft - minLeft)
+    const left = sides[id] === 'left' ? safeLeft : 100 - safeLeft - (size / layout.widthBasis) * 100
+    const duration = 24 + rand() * 24
+    const fade = (size - layout.fontMin) / Math.max(1, layout.fontMax - layout.fontMin)
+
+    return {
+      id,
+      char: pool.chars[Math.floor(rand() * pool.chars.length)],
+      fontId,
+      fontFamily: pool.family,
+      side: sides[id],
+      left: `${left.toFixed(2)}%`,
       size,
-      duration: 26 + rand() * 20,
-      // 负延迟 = 已下落到周期的随机位置
-      delay: -(rand() * 46),
-      drift: Math.round((rand() - 0.5) * 56),
-      // 字越大越淡，保持背景属性
-      opacity: 0.2 + (1 - (size - 16) / 30) * 0.26,
-    })
-  }
-  return glyphs
+      duration,
+      delay: -positions[id] * duration,
+      drift: (sides[id] === 'left' ? -1 : 1) * drift,
+      opacity: Number((0.18 - fade * 0.13).toFixed(3)),
+      rotation: Number((-8 + rand() * 16).toFixed(2)),
+    }
+  })
 }
 
-/**
- * 首页落字动画。
- *
- * 只在客户端运行；开启「减少动态效果」时返回空数组，
- * 组件因此完全不渲染动画节点，而不是渲染后再用 CSS 隐藏。
- */
-export function useFallingGlyphs() {
-  const viewportWidth = ref(1440)
+export function useFallingGlyphs(options: { seed?: number } = {}) {
+  const viewport = ref<FallingViewport>(
+    typeof window === 'undefined' ? 'desktop' : viewportForWidth(window.innerWidth),
+  )
   const prefersReduced = useReducedMotion()
-
-  const count = computed(() => {
-    if (viewportWidth.value < 480) return 5
-    if (viewportWidth.value < 768) return 7
-    if (viewportWidth.value < 1024) return 10
-    return 14
-  })
-
+  const seed = options.seed ?? randomSeed()
   const glyphs = computed<FallingGlyph[]>(() => {
     if (prefersReduced.value) return []
-    return buildGlyphs(count.value)
+    return buildGlyphs({ seed, viewport: viewport.value })
   })
 
-  let raf = 0
+  let resizeFrame = 0
   const measure = () => {
-    cancelAnimationFrame(raf)
-    raf = requestAnimationFrame(() => {
-      viewportWidth.value = window.innerWidth
+    if (typeof window === 'undefined' || resizeFrame !== 0) return
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0
+      // Only crossing a device band regenerates the scene. Ordinary resize
+      // events do not reroll glyphs or trigger repeated component updates.
+      const nextViewport = viewportForWidth(window.innerWidth)
+      if (nextViewport !== viewport.value) viewport.value = nextViewport
     })
   }
 
-  onMounted(() => {
-    measure()
-    window.addEventListener('resize', measure, { passive: true })
-  })
-
+  onMounted(() => window.addEventListener('resize', measure, { passive: true }))
   onBeforeUnmount(() => {
-    cancelAnimationFrame(raf)
+    cancelAnimationFrame(resizeFrame)
     window.removeEventListener('resize', measure)
   })
 

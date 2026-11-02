@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "fonts:build": "python -I scripts/build-font-subsets.py"
+    "fonts:build": "python -I scripts/build-font-subsets.py",
+    "fonts:home": "python -I scripts/build-home-glyph-fonts.py"
   },
   "dependencies": {
     "lucide-vue-next": "^0.577.0",

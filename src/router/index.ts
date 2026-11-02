@@ -12,7 +12,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { title: '字在 ZiZai · 中文古风字体与排版艺术' },
+      meta: { title: '字在 ZiZai' },
     },
     {
       path: '/studio',

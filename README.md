@@ -1,9 +1,9 @@
 # 字在 ZiZai
 
-> 中文古风字体与排版艺术 · 字有风骨，自在其间。
+> 中文字体与纸上排版体验。
 
 一个专注于中文字形欣赏、古典文学阅读与排版体验的网站。全站只有两个一级页面：
-**首页**（单屏沉浸式场景）与 **赏字**（可调字体、文稿、版式的阅读书页）。
+**首页**（单屏品牌入口与动态落字）与 **赏字**（可调字体、文稿、版式的阅读书页）。
 字体图鉴、古文选集、版式、题写、对照、收藏等能力一律通过抽屉、浮层与局部模式承载，
 不新增页面。
 
@@ -48,6 +48,7 @@ npm run test:watch  # 单元测试（监听）
 npm run lint        # ESLint
 npm run lint:fix    # ESLint 自动修复
 npm run fonts:build # 重新生成字体子集（需要先准备字体源文件）
+npm run fonts:home  # 从实际 cmap 生成首页落字子集与覆盖清单
 ```
 
 ## 目录结构
@@ -58,29 +59,31 @@ zizai/
 │   └── design-reference/       # 用户提供的原始设计资料，只读
 ├── public/                     # favicon 等静态资源
 ├── scripts/
-│   ├── build-font-subsets.py   # 生成字体子集 + @font-face 样式
+│   ├── build-font-subsets.py   # 生成赏字字体子集 + @font-face 样式
+│   ├── build-home-glyph-fonts.py # 生成首页专用落字子集
 │   └── font-subset-report.json # 上次生成的缺字报告
 ├── src/
 │   ├── assets/fonts/           # 自托管字体（均为开源/公有领域，见 font-licenses.md）
-│   │   ├── brand/              # 首屏展示子集（106 kB，汇文明朝体）
-│   │   ├── huawen-mingchao/    # 默认主字体（子集 + GB2312 完整字体）
-│   │   ├── lxgw-wenkai/        # 楷体正文（子集 + 完整字体）
-│   │   ├── zhuque-fangsong/    # 仿宋正文（子集 + 完整字体）
-│   │   └── noto-serif-sc/      # 宋体兜底（子集 + 完整字体 + 500字重）
+│   │   ├── brand/              # 首屏展示子集（汇文明朝体）
+│   │   ├── home/               # 首页四款随机落字子集（每款 1,200 汉字）
+│   │   ├── huawen-mingchao/    # 默认正文（子集 + 现有 GB2312 范围字体）
+│   │   ├── lxgw-wenkai/        # 楷体正文（子集 + 现有 GB2312 范围字体）
+│   │   ├── zhuque-fangsong/    # 仿宋正文（子集 + 现有 GB2312 范围字体）
+│   │   └── noto-serif-sc/      # 宋体兜底（子集 + 现有 GB2312 范围字体）
 │   ├── components/
 │   │   ├── SiteHeader.vue      # 品牌 + 主导航
 │   │   ├── home/               # FallingGlyphs 落字动画
 │   │   ├── shell/MoreMenu.vue  # 「···」关于弹层
 │   │   └── studio/             # 赏字抽屉（图鉴/选集/排版/题写/对照/收藏）与书页
 │   ├── composables/            # 阅读状态、字体按需加载、收藏持久化、动效偏好
-│   ├── data/                   # 字体目录、古文目录、字体覆盖表
+│   ├── data/                   # 字体目录、古文目录、字体覆盖表与首页字池
 │   ├── router/
 │   ├── styles/                 # tokens / global / 字体 @font-face
 │   ├── types/                  # FontEntry / TextEntry / ReadingState
 │   ├── views/                  # HomeView / ReadingView / NotFoundView
 │   ├── App.vue
 │   └── main.ts
-└── tests/                      # Vitest 单元测试（78 项通过）
+└── tests/                      # Vitest 单元测试（本轮 82 项通过）
 ```
 
 ## 文档索引
@@ -88,7 +91,7 @@ zizai/
 | 文件 | 内容 |
 |---|---|
 | `docs/implementation-plan.md` | 阶段划分、任务状态、验收标准 |
-| `docs/decisions.md` | 架构 / 依赖 / 设计的取舍与理由（14 条 ADR） |
+| `docs/decisions.md` | 架构 / 依赖 / 设计的取舍与理由（16 条 ADR） |
 | `docs/progress.md` | 按次记录的修改、验证命令与结果、遗留问题 |
 | `docs/design-system.md` | 落地后的设计规范：色值、字体、间距、组件、响应式 |
 | `docs/font-licenses.md` | 每款字体的作者、来源、授权、分发权限、核对日期 |
@@ -99,9 +102,10 @@ zizai/
 
 **阶段 A、B 已完成，C、D 主体已实现，仍有审查发现的功能问题待修复**：
 
-- ✅ 独立工程、类型检查、ESLint、单元测试（78项）、构建全部跑通
+- ✅ 独立工程、类型检查、ESLint、单元测试（82项）、构建全部跑通
 - ✅ 设计系统（纸纹、色值、极简边框、响应式断点）
-- ✅ 首页完整实现：100dvh 单屏沉浸式、落字动画、主视觉、减少动效降级
+- ✅ 首页：单屏品牌入口、宣纸纹理、中央标题与入口、减少动效降级
+- ✅ 首页落字：四款真实字体，每款 1,200 个实际 cmap 汉字，字池共有 4,425 个不同汉字；桌面/平板/手机渲染 32/16/8 个节点
 - ✅ 赏字核心完整实现：书页排版、横排与传统竖排（`writing-mode: vertical-rl`）、字号行距实时微调
 - ✅ 辅助面板全部连接：字体图鉴抽屉、古文分类选集、排版参数微调、自定文字题写、双字体对照分屏、本地收藏笺（localStorage）
 - ✅ 缺字按需加载机制：输入生僻字实时检测，一键拉取 GB2312 完整字体
@@ -110,7 +114,7 @@ zizai/
 
 详细状态与下一步见 `docs/handoff.md`。
 
-**已确认、待实现的字体要求**：全量 WOFF2 应保留原字体全部字符、字形及原有排版与可变轴能力。目前 `*-full.woff2` 仍为 GB2312 范围版本，尚未按新要求转换；首屏子集与全量字体的加载方案仍待讨论。已知问题见 `docs/issues.md`。
+**已确认、待实现的字体要求**：全量 WOFF2 应保留原字体全部字符、字形及原有排版与可变轴能力。目前 `*-full.woff2` 仍为 GB2312 范围版本，尚未按新要求转换。首页随机落字使用独立的性能子集，不代表完整字体，也不改变全量转换要求；见 `docs/issues.md`。
 
 ## 字体授权
 
