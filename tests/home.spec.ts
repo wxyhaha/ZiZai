@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import App from '@/App.vue'
 import HomeView from '@/views/HomeView.vue'
 
 function makeRouter() {
@@ -20,11 +21,29 @@ async function mountHome() {
   return mount(HomeView, { global: { plugins: [router] }, attachTo: document.body })
 }
 
+async function mountApp(path = '/') {
+  const router = makeRouter()
+  router.push(path)
+  await router.isReady()
+  return mount(App, { global: { plugins: [router] }, attachTo: document.body })
+}
+
 afterEach(() => {
   document.body.innerHTML = ''
 })
 
 describe('首页', () => {
+  it('首页隐藏顶部标题栏与导航，赏字页继续显示', async () => {
+    const home = await mountApp('/')
+    expect(home.find('.site-header').exists()).toBe(false)
+    home.unmount()
+
+    const studio = await mountApp('/studio')
+    expect(studio.find('.site-header').exists()).toBe(true)
+    expect(studio.find('nav[aria-label="主导航"]').exists()).toBe(true)
+    studio.unmount()
+  })
+
   it('只保留品牌标题与主操作，不渲染已删除的说明与页脚入口', async () => {
     const wrapper = await mountHome()
     expect(wrapper.get('h1[aria-label="字在"]').text()).toContain('字在')

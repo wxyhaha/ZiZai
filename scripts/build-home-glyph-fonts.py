@@ -49,11 +49,27 @@ FONT_SPECS = (
 )
 
 HAN_LIMIT_PER_FONT = 1200
+COMMON_HAN_LIMIT_PER_FONT = 1000
+LONG_TAIL_HAN_LIMIT_PER_FONT = HAN_LIMIT_PER_FONT - COMMON_HAN_LIMIT_PER_FONT
 RANDOM_SEED = 20261102
 
 
 def is_han(codepoint):
     return any(start <= codepoint < end for start, end in HAN_RANGES)
+
+
+def gb2312_level_one_han_codepoints():
+    """Return GB2312 level-one Han characters as the common-use candidate pool."""
+    out = set()
+    for high in range(0xB0, 0xD8):
+        for low in range(0xA1, 0xFF):
+            try:
+                codepoint = ord(bytes([high, low]).decode('gb2312'))
+            except UnicodeDecodeError:
+                continue
+            if is_han(codepoint):
+                out.add(codepoint)
+    return out
 
 
 def unicode_ranges(codepoints):
@@ -114,6 +130,7 @@ def build_subset(source_path, output_path, codepoints):
 def main():
     if HAN_LIMIT_PER_FONT < 800 or HAN_LIMIT_PER_FONT > 1500:
         raise ValueError('Homepage sample size must be between 800 and 1500 Han characters per font.')
+    common_candidates = gb2312_level_one_han_codepoints()
 
     manifest_fonts = {}
     summary = []
@@ -140,7 +157,21 @@ def main():
             raise ValueError(f'{source_name} has no CJK Han characters in its actual cmap.')
 
         rng = random.Random(f'{RANDOM_SEED}:{font_id}')
-        chosen = sorted(rng.sample(han_codepoints, min(HAN_LIMIT_PER_FONT, len(han_codepoints))))
+        common_han = sorted(cp for cp in han_codepoints if cp in common_candidates)
+        long_tail_han = sorted(cp for cp in han_codepoints if cp not in common_candidates)
+        if len(common_han) < COMMON_HAN_LIMIT_PER_FONT:
+            raise ValueError(
+                f'{source_name} covers only {len(common_han)} GB2312 level-one Han characters; '
+                f'{COMMON_HAN_LIMIT_PER_FONT} are required.'
+            )
+        if len(long_tail_han) < LONG_TAIL_HAN_LIMIT_PER_FONT:
+            raise ValueError(
+                f'{source_name} covers only {len(long_tail_han)} long-tail Han characters; '
+                f'{LONG_TAIL_HAN_LIMIT_PER_FONT} are required.'
+            )
+        chosen_common = sorted(rng.sample(common_han, COMMON_HAN_LIMIT_PER_FONT))
+        chosen_long_tail = sorted(rng.sample(long_tail_han, LONG_TAIL_HAN_LIMIT_PER_FONT))
+        chosen = sorted(chosen_common + chosen_long_tail)
         output_path = ASSET_DIR / f'falling-{output_name}.woff2'
         size, subset_axes = build_subset(source_path, output_path, chosen)
 
@@ -158,7 +189,6 @@ def main():
         if subset_axes != variable_axes:
             raise ValueError(f'Variable font axes changed while building {source_name}.')
 
-        chars = ''.join(chr(cp) for cp in chosen)
         variable_weight = next((axis for axis in variable_axes if axis['tag'] == 'wght'), None)
         css_weight = (
             f"{variable_weight['min']:g} {variable_weight['max']:g}"
@@ -167,7 +197,10 @@ def main():
         manifest_fonts[font_id] = {
             'family': family,
             'file': f'falling-{output_name}.woff2',
-            'chars': chars,
+            # Common characters come first; commonHanCount marks the boundary
+            # so runtime can prefer them without duplicating the character data.
+            'chars': ''.join(chr(cp) for cp in chosen_common + chosen_long_tail),
+            'commonHanCount': len(chosen_common),
             'hanCount': len(chosen),
             'sourceHanCount': len(han_codepoints),
             'sourceCmapCount': len(cmap),
@@ -176,12 +209,14 @@ def main():
             'cssWeight': css_weight,
             'variationAxes': variable_axes,
         }
-        summary.append((font_id, len(han_codepoints), len(chosen), size, variable_axes))
+        summary.append((font_id, len(han_codepoints), len(chosen_common), len(chosen_long_tail), size, variable_axes))
 
     unique_chars = set().union(*(set(entry['chars']) for entry in manifest_fonts.values()))
     payload = {
-        'note': 'Homepage-only random Han pools sampled from each original source cmap. These are subsets, not complete fonts.',
+        'note': 'Homepage-only Han pools sampled from each original source cmap: GB2312 level-one common Han first, followed by a long tail. These are subsets, not complete fonts.',
         'requestedHanPerFont': HAN_LIMIT_PER_FONT,
+        'commonHanPerFont': COMMON_HAN_LIMIT_PER_FONT,
+        'longTailHanPerFont': LONG_TAIL_HAN_LIMIT_PER_FONT,
         'uniqueHanCount': len(unique_chars),
         'totalFontCharacterMappings': sum(entry['hanCount'] for entry in manifest_fonts.values()),
         'fonts': manifest_fonts,
@@ -218,10 +253,11 @@ def main():
         css_tmp.unlink(missing_ok=True)
 
     print(f'Unique Han characters across homepage pools: {len(unique_chars)}')
-    for font_id, source_count, selected_count, size, axes in summary:
+    for font_id, source_count, common_count, long_tail_count, size, axes in summary:
         axis_text = ', '.join(axis['tag'] for axis in axes) or 'static weight'
         print(
-            f'{font_id:18} source Han {source_count:5} / selected {selected_count:4} '
+            f'{font_id:18} source Han {source_count:5} / common {common_count:4} '
+            f'+ long-tail {long_tail_count:3} '
             f'/ WOFF2 {size / 1024:7.1f} kB / {axis_text}'
         )
     print(f'Manifest -> {POOL_PATH.relative_to(ROOT)}')

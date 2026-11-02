@@ -32,7 +32,7 @@ import '@/styles/fonts/home-glyphs.scss'
   position: relative;
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - var(--zz-header-h));
+  height: 100dvh;
   min-height: 0;
   overflow: hidden;
 
@@ -54,9 +54,6 @@ import '@/styles/fonts/home-glyphs.scss'
   align-items: center;
   gap: 38px;
   text-align: center;
-  // The header consumes part of the viewport, so offset the visual group by
-  // half its height to center it against the complete screen.
-  transform: translateY(calc(var(--zz-header-h) / -2));
 
   &__title {
     display: flex;

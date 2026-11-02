@@ -73,12 +73,6 @@ function glyphStyle(glyph: FallingGlyph) {
   }
 }
 
-@media (min-width: 1024px) {
-  .glyph-field__item {
-    font-size: min(var(--glyph-size), max(12px, calc(7.3vh - 4px)));
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .glyph-field {
     display: none;

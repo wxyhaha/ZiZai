@@ -86,6 +86,7 @@ describe('首页落字资源', () => {
 
       expect(chars).toHaveLength(entry.hanCount)
       expect(chars).toHaveLength(1200)
+      expect(entry.commonHanCount).toBe(1000)
       expect(new Set(chars).size).toBe(chars.length)
       expect(chars.every((char) => isHan(char.codePointAt(0)!))).toBe(true)
       expect(entry.sourceHanCount).toBeGreaterThanOrEqual(entry.hanCount)
@@ -96,10 +97,26 @@ describe('首页落字资源', () => {
 })
 
 describe('落字随机布局', () => {
+  it('常用字占主要比例，同时保留少量长尾字', () => {
+    const commonCharsByFont = new Map(
+      FONT_IDS.map((id) => [
+        id,
+        new Set(Array.from(pools.fonts[id].chars).slice(0, pools.fonts[id].commonHanCount)),
+      ]),
+    )
+    const glyphs = Array.from({ length: 12 }, (_, index) =>
+      buildGlyphs({ seed: 20261102 + index, viewport: 'desktop' }),
+    ).flat()
+    const commonCount = glyphs.filter((glyph) => commonCharsByFont.get(glyph.fontId)?.has(glyph.char)).length
+
+    expect(commonCount / glyphs.length).toBeGreaterThan(0.85)
+    expect(commonCount / glyphs.length).toBeLessThan(0.95)
+  })
+
   it.each([
     ['mobile', 8],
     ['tablet', 12],
-    ['desktop', 24],
+    ['desktop', 70],
   ] as const)('%s viewports create %i balanced, varied glyphs', (viewport, count) => {
     const glyphs = buildGlyphs({ seed: 20261102, viewport })
     expect(glyphs).toHaveLength(count)
@@ -122,14 +139,19 @@ describe('落字随机布局', () => {
         tablet: [26, 44],
         desktop: [32, 64],
       }[viewport]
+      const driftLimits = {
+        mobile: [8, 18],
+        tablet: [14, 32],
+        desktop: [10, 22],
+      }[viewport]
       expect(glyph.size).toBeGreaterThanOrEqual(sizeLimits[0])
       expect(glyph.size).toBeLessThanOrEqual(sizeLimits[1])
       expect(glyph.opacity).toBeGreaterThanOrEqual(0.45)
       expect(glyph.opacity).toBeLessThanOrEqual(0.55)
       expect(glyph.rotation).toBeGreaterThanOrEqual(-8)
       expect(glyph.rotation).toBeLessThanOrEqual(8)
-      if (glyph.side === 'left') expect(glyph.drift).toBeLessThan(0)
-      else expect(glyph.drift).toBeGreaterThan(0)
+      expect(Math.abs(glyph.drift)).toBeGreaterThanOrEqual(driftLimits[0])
+      expect(Math.abs(glyph.drift)).toBeLessThanOrEqual(driftLimits[1])
     }
   })
 
@@ -138,8 +160,8 @@ describe('落字随机布局', () => {
       [320, 'mobile', 8],
       [390, 'mobile', 8],
       [768, 'tablet', 12],
-      [1024, 'desktop', 24],
-      [1440, 'desktop', 24],
+      [1024, 'desktop', 70],
+      [1440, 'desktop', 70],
     ]
     for (const [width, viewport, count] of examples) {
       expect(viewportForWidth(width)).toBe(viewport)
@@ -147,18 +169,44 @@ describe('落字随机布局', () => {
     }
   })
 
+  it('keeps the 32px PC minimum on a short viewport by reducing glyph count when needed', () => {
+    const glyphs = buildGlyphs({ seed: 20261102, viewport: 'desktop', width: 1024, height: 384 })
+    expect(glyphs).toHaveLength(54)
+    expect(glyphs.every((glyph) => glyph.size >= 32 && glyph.size <= 64)).toBe(true)
+
+    const lanes = new Map<number, typeof glyphs>()
+    for (const glyph of glyphs) {
+      const lane = lanes.get(glyph.laneId) ?? []
+      lane.push(glyph)
+      lanes.set(glyph.laneId, lane)
+    }
+    for (const lane of lanes.values()) {
+      const phases = lane.map((glyph) => -glyph.delay / glyph.duration).sort((a, b) => a - b)
+      const gaps = phases.map(
+        (phase, index) => (phases[(index + 1) % phases.length] ?? 1) - phase + (index === phases.length - 1 ? 1 : 0),
+      )
+      expect(Math.min(...gaps) * 384 * 1.2).toBeGreaterThanOrEqual(
+        Math.max(...lane.map((glyph) => glyph.size)) * 1.15 + 4 - 0.1,
+      )
+    }
+  })
+
   it('every glyph remains outside the central text-safe area, including its drift', () => {
     for (const viewport of ['mobile', 'tablet', 'desktop'] as const) {
       const basis = { mobile: 320, tablet: 480, desktop: 1024 }[viewport]
       const edge = (1 - { mobile: 0.5, tablet: 0.46, desktop: 0.3 }[viewport]) * basis / 2
-      const margin = { mobile: 8, tablet: 12, desktop: 16 }[viewport]
+      const margin = { mobile: 8, tablet: 12, desktop: 8 }[viewport]
       for (const glyph of buildGlyphs({ seed: 123, viewport })) {
         const left = (Number.parseFloat(glyph.left) / 100) * basis
-        const width = glyph.size
+        const rotationPadding = Math.ceil(glyph.size * 0.08)
+        const sweptLeft = left + Math.min(0, glyph.drift) - rotationPadding
+        const sweptRight = left + glyph.size + Math.max(0, glyph.drift) + rotationPadding
         if (glyph.side === 'left') {
-          expect(left + width - glyph.drift + margin).toBeLessThanOrEqual(edge + 0.1)
+          expect(sweptLeft).toBeGreaterThanOrEqual(margin - 0.1)
+          expect(sweptRight).toBeLessThanOrEqual(edge - margin + 0.1)
         } else {
-          expect(left + glyph.drift - margin).toBeGreaterThanOrEqual(basis - edge - 0.1)
+          expect(sweptLeft).toBeGreaterThanOrEqual(basis - edge + margin - 0.1)
+          expect(sweptRight).toBeLessThanOrEqual(basis - margin + 0.1)
         }
       }
     }
@@ -177,27 +225,69 @@ describe('落字随机布局', () => {
   })
 
   it.each([
-    ['mobile', 320],
-    ['mobile', 844],
-    ['tablet', 568],
-    ['desktop', 568],
-    ['desktop', 900],
-  ] as const)('%s glyph tracks stay separated at %i px height', (viewport, height) => {
-    const glyphs = buildGlyphs({ seed: 20261102, viewport, height })
+    [1024, 568, 6],
+    [1280, 720, 6],
+    [1344, 768, 6],
+    [1408, 768, 8],
+    [1440, 568, 8],
+    [1920, 900, 8],
+  ])('PC falling lanes stay separated and use distinct speeds at %i×%i', (width, height, laneCount) => {
+    const layoutWidth = Math.floor(width / 64) * 64
+    const layoutHeight = Math.max(240, Math.floor(height / 64) * 64)
+    const glyphs = buildGlyphs({ seed: 20261102, viewport: 'desktop', width: layoutWidth, height: layoutHeight })
+    const lanes = new Map<number, typeof glyphs>()
+    for (const glyph of glyphs) {
+      const lane = lanes.get(glyph.laneId) ?? []
+      lane.push(glyph)
+      lanes.set(glyph.laneId, lane)
+    }
+
+    expect(lanes.size).toBe(laneCount)
+    expect(new Set([...lanes.values()].map((lane) => lane[0].duration)).size).toBe(lanes.size)
     for (const side of ['left', 'right'] as const) {
-      const sideGlyphs = glyphs.filter((glyph) => glyph.side === side)
-      expect(new Set(sideGlyphs.map((glyph) => glyph.duration))).toHaveLength(1)
+      const sideCounts = [...lanes.values()]
+        .filter((lane) => lane[0].side === side)
+        .map((lane) => lane.length)
+      expect(new Set(sideCounts).size).toBeGreaterThan(1)
+      expect(Math.max(...sideCounts) - Math.min(...sideCounts)).toBeLessThanOrEqual(6)
+    }
 
-      const phases = sideGlyphs.map((glyph) => -glyph.delay / glyph.duration).sort((a, b) => a - b)
-      const cyclicGaps = phases.map((phase, index) => (phases[(index + 1) % phases.length] ?? 1) - phase + (index === phases.length - 1 ? 1 : 0))
-      const minimumGapPx = Math.min(...cyclicGaps) * height * 1.2
-      const maximumRenderedSize = Math.max(
-        ...sideGlyphs.map((glyph) =>
-          viewport === 'desktop' ? Math.min(glyph.size, Math.max(12, height * 0.073 - 4)) : glyph.size,
-        ),
+    for (const lane of lanes.values()) {
+      expect(new Set(lane.map((glyph) => glyph.duration))).toHaveLength(1)
+      expect(new Set(lane.map((glyph) => Math.sign(glyph.drift)))).toHaveLength(2)
+      const phases = lane.map((glyph) => -glyph.delay / glyph.duration).sort((a, b) => a - b)
+      const cyclicGaps = phases.map(
+        (phase, index) => (phases[(index + 1) % phases.length] ?? 1) - phase + (index === phases.length - 1 ? 1 : 0),
       )
+      const minimumGapPx = Math.min(...cyclicGaps) * layoutHeight * 1.2
+      expect(Math.max(...cyclicGaps) - Math.min(...cyclicGaps)).toBeGreaterThan(0.02)
+      const xPositions = lane.map((glyph) => Number.parseFloat(glyph.left) * layoutWidth / 100)
+      expect(Math.max(...xPositions) - Math.min(...xPositions)).toBeGreaterThan(12)
+      const maximumSize = Math.max(...lane.map((glyph) => glyph.size))
+      const minimumSize = Math.min(...lane.map((glyph) => glyph.size))
+      expect(maximumSize - minimumSize).toBeGreaterThanOrEqual(width === 1024 ? 1 : 8)
+      expect(minimumGapPx).toBeGreaterThanOrEqual(maximumSize * 1.15 + 4 - 0.1)
+    }
 
-      expect(minimumGapPx).toBeGreaterThanOrEqual(maximumRenderedSize * 1.15 + 4 - 0.1)
+    const envelopes = [...lanes].map(([laneId, lane]) => ({
+      laneId,
+      side: lane[0].side,
+      min: Math.min(...lane.map((glyph) => {
+        const left = Number.parseFloat(glyph.left) * layoutWidth / 100
+        return left + Math.min(0, glyph.drift) - Math.ceil(glyph.size * 0.08)
+      })),
+      max: Math.max(...lane.map((glyph) => {
+        const left = Number.parseFloat(glyph.left) * layoutWidth / 100
+        return left + glyph.size + Math.max(0, glyph.drift) + Math.ceil(glyph.size * 0.08)
+      })),
+    }))
+    for (let first = 0; first < envelopes.length; first += 1) {
+      for (let second = first + 1; second < envelopes.length; second += 1) {
+        const left = envelopes[first]
+        const right = envelopes[second]
+        if (left.side !== right.side) continue
+        expect(left.max <= right.min + 0.1 || right.max <= left.min + 0.1).toBe(true)
+      }
     }
   })
 

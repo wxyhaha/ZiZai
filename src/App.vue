@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
 import SiteHeader from '@/components/SiteHeader.vue'
 import MoreMenu from '@/components/shell/MoreMenu.vue'
+
+const route = useRoute()
 </script>
 
 <template>
   <a class="zz-skip-link" href="#main">跳到主要内容</a>
 
   <div class="app-shell">
-    <SiteHeader />
+    <SiteHeader v-if="route.name !== 'home'" />
 
     <RouterView v-slot="{ Component }">
       <Transition name="zz-fade" mode="out-in">
