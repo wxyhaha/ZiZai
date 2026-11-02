@@ -19,12 +19,6 @@ export interface ReadingState {
   letterSpacing: number
   /** 阅读画布的单栏宽度上限，单位 px */
   contentWidth: number
-  /**
-   * 对照模式下第二栏使用的字体 id。
-   * 为 null 表示不处于对照模式 —— 对照是「阅读区的临时模式」，
-   * 不是独立页面，所以它属于阅读状态而不是路由。
-   */
-  compareFontId: string | null
 }
 
 /** 排版预设：把一组阅读参数命名保存，用户可一键套用。 */

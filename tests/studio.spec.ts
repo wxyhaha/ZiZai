@@ -280,6 +280,7 @@ describe('排版面板', () => {
     const wrapper = mount(TypographyPanel, {
       props: {
         open: true,
+        layout: 'horizontal',
         fontSize: 22,
         lineHeight: 2.2,
         letterSpacing: 0.035,
@@ -296,6 +297,15 @@ describe('排版面板', () => {
     const wrapper = await mountTypography()
     expect(qa('.control')).toHaveLength(4)
     expect(qa('.slider')).toHaveLength(4)
+    wrapper.unmount()
+  })
+
+  it('方向选择归入版式面板并可切换到竖排', async () => {
+    const wrapper = await mountTypography()
+    const vertical = q<HTMLButtonElement>('.direction__button[aria-pressed="false"]')
+    vertical.click()
+    await nextTick()
+    expect(wrapper.emitted('update:layout')?.[0]).toEqual(['vertical'])
     wrapper.unmount()
   })
 

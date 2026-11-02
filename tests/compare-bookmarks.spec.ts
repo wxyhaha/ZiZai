@@ -5,7 +5,6 @@ import { useBookmarks } from '@/composables/useBookmarks'
 import { useReadingState } from '@/composables/useReadingState'
 import { fonts } from '@/data/fonts'
 import { texts } from '@/data/texts'
-import ComparePanel from '@/components/studio/ComparePanel.vue'
 import BookmarkPanel from '@/components/studio/BookmarkPanel.vue'
 
 beforeEach(() => {
@@ -27,77 +26,6 @@ function q<T extends Element = HTMLElement>(selector: string): T {
 function qa<T extends Element = HTMLElement>(selector: string): T[] {
   return [...document.body.querySelectorAll<T>(selector)]
 }
-
-describe('对照模式', () => {
-  it('开启时自动挑一款与当前不同的字体', () => {
-    const { state, startCompare, isComparing, compareFont } = useReadingState()
-    expect(isComparing.value).toBe(false)
-
-    startCompare()
-
-    expect(isComparing.value).toBe(true)
-    expect(state.value.compareFontId).not.toBe(state.value.fontId)
-    expect(compareFont.value?.id).toBe(state.value.compareFontId)
-  })
-
-  it('指定字体时直接采用', () => {
-    const { state, startCompare } = useReadingState()
-    const target = fonts[2].id
-    startCompare(target)
-    expect(state.value.compareFontId).toBe(target)
-  })
-
-  it('退出对照只清掉对照栏，不动主字体与排版', () => {
-    const { state, startCompare, stopCompare, setFontSize } = useReadingState()
-    setFontSize(28)
-    const mainFont = state.value.fontId
-    startCompare()
-    stopCompare()
-
-    expect(state.value.compareFontId).toBeNull()
-    expect(state.value.fontId).toBe(mainFont)
-    expect(state.value.fontSize).toBe(28)
-  })
-
-  it('面板会 emit start / select / stop', async () => {
-    const wrapper = mount(ComparePanel, {
-      props: { open: true, fonts, primaryId: fonts[0].id, compareId: null },
-      attachTo: document.body,
-    })
-    await nextTick()
-
-    // 未开启时只有一个「进入对照模式」
-    q<HTMLButtonElement>('.toggle').click()
-    await nextTick()
-    expect(wrapper.emitted('start')).toBeTruthy()
-    expect(wrapper.emitted('select')).toBeFalsy()
-
-    wrapper.unmount()
-  })
-
-  it('已开启时列出候选字体，并可切换与退出', async () => {
-    const wrapper = mount(ComparePanel, {
-      props: { open: true, fonts, primaryId: fonts[0].id, compareId: fonts[1].id },
-      attachTo: document.body,
-    })
-    await nextTick()
-
-    const candidates = qa('.candidate')
-    // 主字体不应出现在候选里 —— 自己和自己对照没有意义
-    expect(candidates).toHaveLength(fonts.length - 1)
-    expect(candidates.map((c) => c.textContent)).not.toContain(fonts[0].name)
-
-    candidates[1].click()
-    await nextTick()
-    expect(wrapper.emitted('select')?.[0]).toEqual([fonts[2].id])
-
-    q<HTMLButtonElement>('.toggle').click()
-    await nextTick()
-    expect(wrapper.emitted('stop')).toBeTruthy()
-
-    wrapper.unmount()
-  })
-})
 
 describe('收藏笺', () => {
   const sample = {

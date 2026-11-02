@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpen, Boxes, Heart, PenLine, SlidersHorizontal, Type, UnfoldHorizontal } from 'lucide-vue-next'
+import { BookOpen, Heart, PenLine, SlidersHorizontal, Type } from 'lucide-vue-next'
 
 /**
  * 赏字的工具条。
@@ -12,9 +12,7 @@ export type StudioTool =
   | 'fonts'
   | 'texts'
   | 'typography'
-  | 'layouts'
   | 'write'
-  | 'compare'
   | 'bookmarks'
 
 defineProps<{
@@ -29,10 +27,8 @@ const emit = defineEmits<{ open: [tool: StudioTool] }>()
 const tools = [
   { id: 'fonts' as const, icon: Type, label: '字体', glyph: '字' },
   { id: 'texts' as const, icon: BookOpen, label: '文选', glyph: '文' },
-  { id: 'typography' as const, icon: SlidersHorizontal, label: '排版', glyph: '尺' },
-  { id: 'layouts' as const, icon: Boxes, label: '版式', glyph: '式' },
+  { id: 'typography' as const, icon: SlidersHorizontal, label: '版式', glyph: '式' },
   { id: 'write' as const, icon: PenLine, label: '题写', glyph: '写' },
-  { id: 'compare' as const, icon: UnfoldHorizontal, label: '对照', glyph: '对' },
   { id: 'bookmarks' as const, icon: Heart, label: '收藏', glyph: '笺' },
 ]
 </script>

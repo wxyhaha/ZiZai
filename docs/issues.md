@@ -1,19 +1,19 @@
 # 问题清单
 
-记录日期：2026-11-02。来自源码审查、项目对应的 Claude 桌面端原始开发记录及隔离状态探针。除条目另行注明已处理的工程事项外，以下功能问题尚未修复；不以现有 78 项单元测试通过作为功能无缺陷的证明。
+记录日期：2026-11-02。来自源码审查、项目对应的 Claude 桌面端原始开发记录及隔离状态探针。状态按本轮赏字页改版更新；测试通过不等于功能无缺陷。
 
-本次按用户要求先记录，后续讨论再决定修复范围与顺序。P1 表示直接影响核心操作，P2 表示边界行为或工程改进优先项。
+本清单持续记录已知问题与处理状态；P1 表示直接影响核心操作，P2 表示边界行为或工程改进优先项。
 
 ## 功能与数据问题
 
 | 编号 | 优先级 | 问题 / 触发方式 | 影响与验证程度 | 位置 |
 |---|---|---|---|---|
-| ZZ-001 | P1 | 首页「阅古」进入 `/studio?panel=texts`，阅读页却将 `texts` 映射为 `fonts` | 会打开字体图鉴而非古文选集。源码确认，本次未额外浏览器复现 | `src/views/ReadingView.vue` 的 `onMounted` |
-| ZZ-002 | P1 | 竖排正文写死 `line-height: 2.1` 与 `letter-spacing: 0.06em` | 面板参数变化无法影响竖排正文。CSS 覆盖关系确认，待浏览器回归 | `src/components/studio/ReadingSheet.vue` 的 `.sheet--vertical .prose` |
+| ZZ-001 | P1 | 首页「阅古」进入 `/studio?panel=texts`，阅读页却将 `texts` 映射为 `fonts` | ✅ 已修复：现在打开文选面板；有路由入口测试，待真实浏览器回归 | `src/views/ReadingView.vue` 的 `onMounted` |
+| ZZ-002 | P1 | 竖排正文写死 `line-height: 2.1` 与 `letter-spacing: 0.06em` | ✅ 已修复：竖排正文绑定 `--reading-leading` 和 `--reading-tracking`；有参数断言，待真实浏览器回归 | `src/components/studio/ReadingSheet.vue` |
 | ZZ-003 | P1 | 收藏去重没有比较行高、字距、版心宽度 | 同字体、文稿、方向、字号，仅改变这三项中任一项再次收藏，会覆盖旧搭配。调用真实 composable 分别复现，预期两条，实际一条 | `src/composables/useBookmarks.ts` 的 `add` |
 | ZZ-004 | P2 | 收藏存储条目只检查 `id` / `fontId`，没有完整字段与数值校验 | 缺字段条目被接受，恢复参数可变成 `NaN`。隔离内存 localStorage 与真实状态函数复现；未动用户浏览器数据 | `src/composables/useBookmarks.ts` 的 `read`；`src/views/ReadingView.vue` 的 `restore` |
 | ZZ-005 | P2 | 字体字符提取剥除整个 Vue `<script>` 块 | 漏掉模板通过变量引用的中文。只执行现有提取函数即可确认「字与字之间的松紧」的「紧」未纳入内容字符集，可能回退到其他字体 | `scripts/build-font-subsets.py` 的 `_chars_from`；`src/components/studio/TypographyPanel.vue` |
-| ZZ-006 | P2 | 开启 A/B 对照后，把主字体改为 B | 会形成 B/B 对照；仅开启时保证两款字体不同。真实状态函数已复现 | `src/composables/useReadingState.ts` 的 `startCompare` / `setFont` |
+| ZZ-006 | P2 | 开启 A/B 对照后，把主字体改为 B | ✅ 按本轮产品范围整体移除对照功能；相关状态、面板、入口与测试均已删除 | `src/components/studio/StudioToolbar.vue`、`src/composables/useReadingState.ts` |
 
 ## 开发效率与交接问题
 
@@ -32,11 +32,11 @@
 - 后续验收需比较原字体与全量 WOFF2 的字符映射、字形、排版表及可变轴；不能只检查文件生成成功或体积。首屏是否继续采用小子集、正文完整字体何时加载，仍待讨论。
 - 本次提交再次确认只记录此要求，不把现有 GB2312 文件表述为全量转换已完成。决策详见 ADR-015。
 
-## 验证边界
+## 本轮处理后的验证边界
 
-- 上一轮审查已实跑 `npm run test`：6 文件、78 项通过；`npm run lint` 与包含类型检查的 `npm run build` 通过。
+- 本轮新增书页分页、全文来源和入口 / 竖排参数测试；完整验证命令与结果记录于 `docs/progress.md`。
 - 状态探针使用真实 composable 和内存存储，复现 ZZ-003、ZZ-004、ZZ-006；字符提取检查确认 ZZ-005。
-- ZZ-001、ZZ-002 依据源码与 CSS 确认，修复后仍需浏览器行为验证。
-- 本次问题登记仅修改文档，没有修改业务代码，也没有重新运行测试或字体生成。
+- ZZ-001、ZZ-002 已有组件 / 数据测试覆盖，但当前桌面浏览器自动化因地址识别置信度不足而无法启动，未完成真实视觉回归。
+- ZZ-003、ZZ-004、ZZ-005 与 ZZ-007—ZZ-011 尚未处理；完整字体转换仍按长期要求待另行讨论。
 - 调用窗口包含工具启动、审核、传输等等待，并非纯命令运行时间；各类时间不能与 API 累计值直接相加。
 - 详细审查报告与统计附件位于本机 `C:\Users\wxy\Documents\Codex\2026-11-02\zizai-review\`，该位置不是项目运行依赖。

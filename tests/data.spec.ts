@@ -82,11 +82,28 @@ describe('古文目录', () => {
     for (const text of texts) {
       expect(text.title, text.id).toBeTruthy()
       expect(text.author, text.id).toBeTruthy()
+      expect(text.category, text.id).toBeTruthy()
       expect(text.paragraphs.length, text.id).toBeGreaterThan(0)
       for (const p of text.paragraphs) {
         expect(p.length, `${text.id} 有空段落`).toBeGreaterThan(0)
       }
     }
+  })
+
+  it('每篇作品都有公开来源，内置正文均明确为全文', () => {
+    for (const text of texts) {
+      expect(text.sourceUrl, text.id).toMatch(/^https:\/\//)
+      expect(text.sourceTitle, text.id).toBeTruthy()
+      expect(text.isExcerpt, text.id).toBe(false)
+    }
+  })
+
+  it('被补全的长文包含各自的结尾段落', () => {
+    const byId = Object.fromEntries(texts.map((text) => [text.id, text.paragraphs.join('')]))
+    expect(byId['xiang-ji-xuan']).toContain('今已亭亭如盖矣。')
+    expect(byId['qian-chi-bi-fu']).toContain('不知东方之既白。')
+    expect(byId['yue-yang-lou']).toContain('时六年九月十五日。')
+    expect(byId['ding-feng-bo']).toContain('三月七日，沙湖道中遇雨。')
   })
 
   it('正文不为空且不含未替换的占位符', () => {

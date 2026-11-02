@@ -33,6 +33,8 @@ scripts/font-sources/*
 coverage
 .vitest
 *.tsbuildinfo
+__pycache__/
+*.pyc
 .claude/
 
 # 保留字体源目录占位，但不提交源文件

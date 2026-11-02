@@ -1,27 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { LayoutMode } from '@/types'
+import type { BookPage } from '@/composables/usePagination'
 
-/**
- * 书页本身：只负责把 ReadingState 渲染成纸上的字。
- *
- * 它不持有状态、不读取 data，只接收已经算好的 props ——
- * 所以任何字体 × 任意文稿 × 任意版式都能组合，不会写死在页面里。
- */
 const props = defineProps<{
+  page: BookPage
   title: string
   author: string
   era?: string
-  paragraphs: string[]
-  /** 完整 CSS font-family 值 */
   fontFamily: string
   layout: LayoutMode
   fontSize: number
   lineHeight: number
   letterSpacing: number
   contentWidth: number
-  /** 题写模式下不显示「自定文字 / 由你题写」这类元信息之外的额外装饰 */
   isCustom?: boolean
+  pagePosition: 'first' | 'second'
+  single: boolean
 }>()
 
 const isVertical = computed(() => props.layout === 'vertical')
@@ -38,12 +33,15 @@ const styleVars = computed(() => ({
 <template>
   <article
     class="sheet"
-    :class="{ 'sheet--vertical': isVertical }"
+    :class="[
+      { 'sheet--vertical': isVertical, 'sheet--single': props.single },
+      `sheet--${props.pagePosition}`,
+    ]"
     :style="styleVars"
-    :data-layout="props.layout"
+    :data-page="props.page.index + 1"
   >
-    <div class="sheet__inner">
-      <header v-if="!isVertical" class="sheet__head">
+    <div v-if="!isVertical" class="sheet__inner">
+      <header v-if="props.page.hasHeader" class="sheet__head">
         <h1 class="sheet__title">{{ props.title }}</h1>
         <p class="sheet__meta">
           <span v-if="props.era">{{ props.era }} ·</span>
@@ -51,29 +49,50 @@ const styleVars = computed(() => ({
         </p>
       </header>
 
-      <p v-else class="sheet__title-vertical">{{ props.title }}</p>
-
       <div class="prose">
-        <p v-for="(paragraph, index) in props.paragraphs" :key="index">{{ paragraph }}</p>
+        <p
+          v-for="(paragraph, index) in props.page.paragraphs"
+          :key="`${paragraph.paragraphIndex}-${index}`"
+          :class="{ 'prose__paragraph--end': paragraph.paragraphEnd }"
+          :style="{ textIndent: paragraph.indent ? '2em' : '0' }"
+        >
+          {{ paragraph.text }}
+        </p>
       </div>
     </div>
+
+    <div v-else class="sheet__inner sheet__inner--vertical">
+      <div class="sheet__vertical-flow" aria-label="竖排正文">
+        <div
+          v-for="(column, index) in props.page.columns"
+          :key="`${column.kind}-${index}`"
+          class="sheet__column"
+          :class="`sheet__column--${column.kind}`"
+          :style="{ '--column-width': `${column.width}px` }"
+        >
+          {{ column.text }}
+        </div>
+      </div>
+    </div>
+
+    <span class="sheet__folio" aria-hidden="true">{{ props.page.index + 1 }}</span>
   </article>
 </template>
 
 <style scoped lang="scss">
 .sheet {
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
-  border: 1px solid var(--zz-line-strong);
-  border-radius: var(--zz-radius-xs);
+  border: 1px solid var(--zz-line);
+  border-radius: 1px;
   background: var(--zz-paper-reading);
-  box-shadow: var(--zz-shadow-sheet);
+  box-shadow: 0 8px 28px rgb(58 47 35 / 3.5%);
   overflow: hidden;
 
-  // 书页自身的极淡点阵，比页面纸纹再轻一档
   &::before {
     content: '';
     position: absolute;
@@ -81,30 +100,49 @@ const styleVars = computed(() => ({
     pointer-events: none;
     background-image: radial-gradient(rgb(138 111 82 / 5.8%) 0.5px, transparent 1px);
     background-size: 9px 9px;
-    opacity: 0.23;
+    opacity: 0.17;
+  }
+
+  &--second {
+    border-left-color: var(--zz-line-soft);
+  }
+
+  &--single::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    height: 24px;
+    pointer-events: none;
+    background: linear-gradient(135deg, transparent 48%, rgb(92 75 54 / 5%) 50%, var(--zz-paper) 100%);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
   }
 
   &__inner {
     position: relative;
     z-index: 1;
     flex: 1;
+    min-width: 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow: auto;
-    overscroll-behavior: contain;
-    padding: 52px 8% 46px;
+    overflow: hidden;
+    padding: 36px 40px;
   }
 
   &__head {
+    flex: none;
+    width: min(100%, var(--reading-width));
     text-align: center;
-    margin-bottom: 40px;
+    margin: 0 0 26px;
   }
 
   &__title {
     font-family: var(--reading-font);
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 400;
     letter-spacing: var(--zz-track-normal);
     text-indent: var(--zz-track-normal);
@@ -113,35 +151,83 @@ const styleVars = computed(() => ({
   }
 
   &__meta {
-    margin-top: 12px;
+    margin-top: 8px;
     font-family: var(--zz-font-serif);
     font-size: var(--zz-text-sm);
-    letter-spacing: 0.22em;
-    text-indent: 0.22em;
+    letter-spacing: 0.18em;
+    text-indent: 0.18em;
     color: var(--zz-muted);
+    line-height: 1.6;
   }
 
-  &__title-vertical {
+  &__vertical-flow {
+    display: flex;
+    flex: 1;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    align-items: stretch;
+    width: 100%;
+    max-width: var(--reading-width);
+    height: 100%;
+    margin-left: auto;
+    overflow: hidden;
+    font-family: var(--reading-font);
+  }
+
+  &__column {
     flex: none;
+    height: 100%;
+    width: var(--column-width);
+    overflow: hidden;
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    font-family: var(--reading-font);
-    font-size: 22px;
-    letter-spacing: 0.14em;
-    color: var(--zz-muted);
-    padding-bottom: 4px;
-    border-left: 1px solid var(--zz-line-soft);
-    padding-left: 16px;
-    margin-left: 18px;
-    user-select: none;
+    white-space: pre;
+    line-height: var(--reading-leading);
+    letter-spacing: var(--reading-tracking);
+    color: var(--zz-ink-body);
+
+    &--title {
+      font-size: 22px;
+      line-height: 1.5;
+      letter-spacing: 0.14em;
+      color: var(--zz-ink);
+    }
+
+    &--meta {
+      font-family: var(--zz-font-serif);
+      font-size: 13px;
+      line-height: 1.6;
+      letter-spacing: 0.08em;
+      color: var(--zz-muted);
+    }
+
+    &--body {
+      font-size: var(--reading-size);
+    }
+
+    &--gap {
+      color: transparent;
+    }
+  }
+
+  &__folio {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    bottom: 16px;
+    left: 0;
+    text-align: center;
+    font-family: var(--zz-font-serif);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.12em;
+    color: var(--zz-muted-soft);
+    opacity: 0.7;
   }
 }
 
-/* ---- 正文 ----
-   横排：等宽居中栏，段首缩进两字。
-   竖排：writing-mode: vertical-rl —— 真竖排，不是旋转容器。 */
 .prose {
-  width: 100%;
+  width: min(100%, var(--reading-width));
   max-width: var(--reading-width);
   font-family: var(--reading-font);
   font-size: var(--reading-size);
@@ -150,8 +236,13 @@ const styleVars = computed(() => ({
   color: var(--zz-ink-body);
 
   p {
-    margin: 0 0 1.1em;
-    text-indent: 2em;
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  p.prose__paragraph--end {
+    margin-bottom: 1.1em;
   }
 
   p:last-child {
@@ -160,35 +251,9 @@ const styleVars = computed(() => ({
 }
 
 .sheet--vertical {
-  .sheet__inner {
+  .sheet__inner--vertical {
     align-items: stretch;
-    display: flex;
-    // 标题列在最右，正文列向左溢出 —— 与 vertical-rl 的阅读顺序一致
-    flex-direction: row-reverse;
-    padding: 26px 26px 22px;
-    overflow: auto;
-    overflow-y: hidden;
-  }
-
-  .prose {
-    max-width: none;
-    min-width: 0;
-    // 高度撑满可见区：每列正好一屏高，超出部分向左展开成新列
-    height: 100%;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    line-height: 2.1;
-    letter-spacing: 0.06em;
-    padding-top: 0;
-
-    p {
-      margin: 0 0 0 1.5em;
-      text-indent: 2em;
-    }
-
-    p:last-child {
-      margin-left: 0;
-    }
+    padding: 24px 26px 38px;
   }
 }
 </style>

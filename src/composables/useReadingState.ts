@@ -1,6 +1,6 @@
 import { computed, readonly, ref } from 'vue'
 import type { LayoutMode, ReadingState } from '@/types'
-import { defaultFontId, fonts, getFont } from '@/data/fonts'
+import { defaultFontId, getFont } from '@/data/fonts'
 import { defaultTextId, getText } from '@/data/texts'
 
 /**
@@ -22,7 +22,6 @@ const DEFAULT_STATE: ReadingState = {
   // 约 30 字/行。中文长文的舒适区间是 25–40 字，这里取中值偏窄，
   // 更接近设计稿中「书页」的密度。
   contentWidth: 680,
-  compareFontId: null,
 }
 
 /** 题写字数上限。超出部分不进入渲染，避免超长文本拖慢排版。 */
@@ -56,31 +55,6 @@ export function useReadingState() {
 
   /** 当前是否处于题写模式（显示用户输入而非内置古文） */
   const isCustom = computed(() => Boolean(state.value.customText?.trim()))
-
-  /** 当前是否处于对照模式（阅读区临时分屏） */
-  const isComparing = computed(() => state.value.compareFontId !== null)
-
-  /** 对照模式的第二款字体 */
-  const compareFont = computed(() =>
-    state.value.compareFontId ? getFont(state.value.compareFontId) : null,
-  )
-
-  /**
-   * 进入对照模式。第二栏默认取一款与当前不同的字体 ——
-   * 相同字体对照没有意义，用户点进来时应该立刻看到差异。
-   */
-  function startCompare(fontId?: string) {
-    const fallback = fonts.find((f) => f.id !== state.value.fontId)?.id ?? state.value.fontId
-    state.value.compareFontId = fontId ?? fallback
-  }
-
-  function setCompareFont(fontId: string) {
-    state.value.compareFontId = fontId
-  }
-
-  function stopCompare() {
-    state.value.compareFontId = null
-  }
 
   function setLayout(layout: LayoutMode) {
     state.value.layout = layout
@@ -134,11 +108,6 @@ export function useReadingState() {
     activeFont,
     isVertical,
     isCustom,
-    isComparing,
-    compareFont,
-    startCompare,
-    setCompareFont,
-    stopCompare,
     setLayout,
     setFont,
     setText,

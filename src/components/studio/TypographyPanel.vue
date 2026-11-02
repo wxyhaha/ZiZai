@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { SliderRoot, SliderThumb, SliderTrack, SliderRange } from 'reka-ui'
+import type { LayoutMode } from '@/types'
 import StudioPanel from './StudioPanel.vue'
 
 /** 排版参数：字号、行高、字距、版心宽度。 */
 
 const props = defineProps<{
   open: boolean
+  layout: LayoutMode
   fontSize: number
   lineHeight: number
   letterSpacing: number
@@ -15,6 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
+  'update:layout': [value: LayoutMode]
   'update:fontSize': [value: number]
   'update:lineHeight': [value: number]
   'update:letterSpacing': [value: number]
@@ -106,10 +109,35 @@ function resetAll() {
 <template>
   <StudioPanel
     :open="props.open"
-    title="排版 · 字间尺度"
-    description="细调字号与行气。改动会即时反映在书页上。"
+    title="版式 · 纸上章法"
+    description="选择横竖方向，再细调字号、行气与版心。改动会即时反映在书页上。"
     @update:open="(v) => emit('update:open', v)"
   >
+    <fieldset class="direction">
+      <legend class="direction__legend">文字方向</legend>
+      <div class="direction__options">
+        <button
+          type="button"
+          class="direction__button"
+          :class="{ 'is-active': props.layout === 'horizontal' }"
+          :aria-pressed="props.layout === 'horizontal'"
+          @click="emit('update:layout', 'horizontal')"
+        >
+          横排
+        </button>
+        <button
+          type="button"
+          class="direction__button"
+          :class="{ 'is-active': props.layout === 'vertical' }"
+          :aria-pressed="props.layout === 'vertical'"
+          @click="emit('update:layout', 'vertical')"
+        >
+          竖排
+        </button>
+      </div>
+      <p class="direction__hint">竖排使用 writing-mode: vertical-rl，按传统自上而下、从右至左阅读。</p>
+    </fieldset>
+
     <div v-for="control in controls" :key="control.key" class="control">
       <div class="control__head">
         <label :for="`ctrl-${control.key}`" class="control__label">{{ control.label }}</label>
@@ -175,6 +203,63 @@ function resetAll() {
     margin-top: 9px;
     font-size: var(--zz-text-2xs);
     letter-spacing: var(--zz-track-tight);
+    color: var(--zz-muted);
+  }
+}
+
+.direction {
+  padding: 0;
+  border: 0;
+  margin: 0 0 28px;
+
+  &__legend {
+    margin-bottom: 11px;
+    font-family: var(--zz-font-serif);
+    font-size: var(--zz-text-base);
+    letter-spacing: var(--zz-track-normal);
+    color: var(--zz-ink);
+  }
+
+  &__options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  &__button {
+    min-height: 42px;
+    border: 1px solid var(--zz-line);
+    border-radius: var(--zz-radius-sm);
+    font-family: var(--zz-font-serif);
+    font-size: var(--zz-text-sm);
+    letter-spacing: var(--zz-track-normal);
+    color: var(--zz-muted);
+    transition:
+      border-color var(--zz-dur-fast) var(--zz-ease-out),
+      background-color var(--zz-dur-fast) var(--zz-ease-out),
+      color var(--zz-dur-fast) var(--zz-ease-out);
+
+    &:hover {
+      border-color: var(--zz-line-strong);
+      color: var(--zz-ink-soft);
+    }
+
+    &.is-active {
+      border-color: var(--zz-accent);
+      background: var(--zz-accent-wash);
+      color: var(--zz-accent);
+    }
+
+    &:focus-visible {
+      outline: var(--zz-focus-ring);
+      outline-offset: 2px;
+    }
+  }
+
+  &__hint {
+    margin-top: 9px;
+    font-size: var(--zz-text-2xs);
+    line-height: 1.8;
     color: var(--zz-muted);
   }
 }

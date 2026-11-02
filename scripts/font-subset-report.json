@@ -1,35 +1,28 @@
 [
   {
-    "id": "brand-serif",
-    "source": "汇文明朝体",
-    "kb": 106.6,
-    "chars": 254,
-    "missing": ""
-  },
-  {
     "id": "huawen-mingchao",
-    "subsetKb": 408.0,
+    "subsetKb": 565.9,
     "fullKb": 4199.1,
     "contentMissing": "楯",
     "fullMissing": "傈"
   },
   {
     "id": "lxgw-wenkai",
-    "subsetKb": 171.0,
+    "subsetKb": 231.2,
     "fullKb": 1524.7,
     "contentMissing": "",
     "fullMissing": ""
   },
   {
     "id": "zhuque-fangsong",
-    "subsetKb": 233.3,
+    "subsetKb": 322.4,
     "fullKb": 2500.1,
-    "contentMissing": "○",
+    "contentMissing": "○埳",
     "fullMissing": "○"
   },
   {
     "id": "noto-serif-sc",
-    "subsetKb": 155.3,
+    "subsetKb": 203.1,
     "fullKb": 1271.3,
     "contentMissing": "",
     "fullMissing": ""

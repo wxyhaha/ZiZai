@@ -5,12 +5,11 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import ReadingView from '@/views/ReadingView.vue'
 import FontPickerPanel from '@/components/studio/FontPickerPanel.vue'
 import TextPickerPanel from '@/components/studio/TextPickerPanel.vue'
+import TypographyPanel from '@/components/studio/TypographyPanel.vue'
 import { useReadingState, CUSTOM_TEXT_LIMIT } from '@/composables/useReadingState'
 import { fonts } from '@/data/fonts'
 import { texts } from '@/data/texts'
 
-// 阅读状态是模块级单例（离开赏字再回来要保留字体与排版），
-// 测试之间必须显式复位，否则会互相污染。
 beforeEach(() => {
   useReadingState().reset()
 })
@@ -25,110 +24,100 @@ function makeRouter() {
   })
 }
 
-async function mountStudio() {
+async function mountStudio(path = '/studio') {
   const router = makeRouter()
-  router.push('/studio')
+  await router.push(path)
   await router.isReady()
   return mount(ReadingView, { global: { plugins: [router] } })
 }
 
-describe('赏字阅读区', () => {
-  it('渲染默认古文的完整标题、作者与全部段落', async () => {
+describe('赏字书页', () => {
+  it('首页入口、选择器、底部工具条和显性的方向按钮已从正文区移除', async () => {
+    const wrapper = await mountStudio()
+    expect(wrapper.find('.studio__bar').exists()).toBe(false)
+    expect(wrapper.find('.picker').exists()).toBe(false)
+    expect(wrapper.find('.modes').exists()).toBe(false)
+    expect(wrapper.find('.studio__foot').exists()).toBe(false)
+    expect(wrapper.find('.book-viewer__stage').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('渲染默认作品的标题、作者与首屏正文', async () => {
     const wrapper = await mountStudio()
     const first = texts[0]
     expect(wrapper.get('.sheet__title').text()).toBe(first.title)
     expect(wrapper.get('.sheet__meta').text()).toContain(first.author)
-    const paragraphs = wrapper.findAll('.prose p')
-    expect(paragraphs).toHaveLength(first.paragraphs.length)
-    expect(paragraphs[0].text()).toBe(first.paragraphs[0])
+    expect(wrapper.findAll('.prose p').length).toBeGreaterThan(0)
+    expect(wrapper.find('.prose').text()).toContain(first.paragraphs[0].slice(0, 12))
     wrapper.unmount()
   })
 
-  it('默认字体是设计稿的汇文明朝体', async () => {
-    const wrapper = await mountStudio()
-    expect(wrapper.get('.picker__label').text()).toBe('汇文明朝体')
-    const style = wrapper.get('.sheet').attributes('style') ?? ''
-    expect(style).toContain('Huiwen Mincho')
-    wrapper.unmount()
-  })
-
-  it('切换字体后书页的 font-family 真的改变', async () => {
-    const wrapper = await mountStudio()
-    const target = fonts.find((f) => f.id !== fonts[0].id)!
-    wrapper.findComponent(FontPickerPanel).vm.$emit('select', target.id)
-    // Vue 的更新是异步的：emit 之后必须等一拍，DOM 才会反映新的字体
+  it('短章单页显示，长文使用双页展开并提供翻页状态', async () => {
+    const short = await mountStudio()
+    short.findComponent(TextPickerPanel).vm.$emit('select', 'shan-ju-qiu-ming')
     await nextTick()
+    expect(short.get('.book-spread').attributes('data-page-mode')).toBe('single')
+    expect(short.get('.book-nav__status').text()).toBe('1 / 1 页')
+    short.unmount()
 
-    const vars = wrapper.get('.sheet').attributes('style') ?? ''
-    expect(vars).toContain('--reading-font')
-    // 字体族通过内联 CSS 变量注入书页，变量值来自当前字体的 family
-    expect(vars).toContain(target.family.split(',')[0].replace(/"/g, ''))
-    expect(wrapper.get('.picker__label').text()).toBe(target.name)
-    wrapper.unmount()
+    useReadingState().reset()
+    const long = await mountStudio()
+    expect(long.get('.book-spread').attributes('data-page-mode')).toBe('spread')
+    expect(Number(long.get('.book-spread').attributes('data-page-count'))).toBeGreaterThan(1)
+    expect(long.findAll('.sheet')).toHaveLength(2)
+    const before = long.get('.sheet').attributes('data-page')
+    await long.get('[aria-label="下一组页面"]').trigger('click')
+    expect(long.get('.sheet').attributes('data-page')).not.toBe(before)
+    long.unmount()
   })
 
-  it('切换古文后标题、作者与正文一起更新', async () => {
+  it('切换字体或文稿会重新分页，并在文稿切换后回到第一页', async () => {
     const wrapper = await mountStudio()
+    const next = wrapper.get('[aria-label="下一组页面"]')
+    await next.trigger('click')
+    expect(wrapper.get('.sheet').attributes('data-page')).not.toBe('1')
+
+    const font = fonts.find((entry) => entry.id !== fonts[0].id)!
+    wrapper.findComponent(FontPickerPanel).vm.$emit('select', font.id)
+    await nextTick()
+    expect(wrapper.get('.sheet').attributes('style')).toContain(font.family.split(',')[0].replace(/"/g, ''))
+
     wrapper.findComponent(TextPickerPanel).vm.$emit('select', texts[1].id)
     await nextTick()
-
+    expect(wrapper.get('.sheet').attributes('data-page')).toBe('1')
     expect(wrapper.get('.sheet__title').text()).toBe(texts[1].title)
-    expect(wrapper.get('.sheet__meta').text()).toContain(texts[1].author)
-    expect(wrapper.findAll('.prose p')[0].text()).toBe(texts[1].paragraphs[0])
     wrapper.unmount()
   })
 
-  it('竖排使用 writing-mode，而不是旋转容器', async () => {
+  it('五个轻工具入口保留字体、文选、版式、题写和收藏', async () => {
     const wrapper = await mountStudio()
-    await wrapper.findAll('.modes__btn')[1].trigger('click')
+    const labels = wrapper.findAll('.tools__label').map((node) => node.text())
+    expect(labels).toEqual(['字体', '文选', '版式', '题写', '收藏'])
+
+    await wrapper.findAll('.tools__btn')[1].trigger('click')
+    expect(document.body.querySelector('[role="dialog"] .panel__title')?.textContent).toContain('文选')
+    wrapper.unmount()
+  })
+
+  it('方向、行高与字距在统一版式面板中控制竖排书页', async () => {
+    const wrapper = await mountStudio()
+    const panel = wrapper.findComponent(TypographyPanel)
+    panel.vm.$emit('update:layout', 'vertical')
+    panel.vm.$emit('update:lineHeight', 2.8)
+    panel.vm.$emit('update:letterSpacing', 0.12)
+    await nextTick()
 
     expect(wrapper.get('.sheet').classes()).toContain('sheet--vertical')
-    // 竖排标题列出现，横排标题消失
-    expect(wrapper.find('.sheet__title-vertical').exists()).toBe(true)
-    expect(wrapper.find('.sheet__head').exists()).toBe(false)
+    expect(wrapper.get('.sheet').attributes('style')).toContain('--reading-leading: 2.8')
+    expect(wrapper.get('.sheet').attributes('style')).toContain('--reading-tracking: 0.12em')
+    expect(wrapper.find('.sheet__column--body').exists()).toBe(true)
     wrapper.unmount()
   })
 
-  it('横排与竖排按钮正确同步 aria-pressed', async () => {
-    const wrapper = await mountStudio()
-    const [h, v] = wrapper.findAll('.modes__btn')
-    expect(h.attributes('aria-pressed')).toBe('true')
-    expect(v.attributes('aria-pressed')).toBe('false')
-
-    await v.trigger('click')
-    expect(wrapper.findAll('.modes__btn')[0].attributes('aria-pressed')).toBe('false')
-    expect(wrapper.findAll('.modes__btn')[1].attributes('aria-pressed')).toBe('true')
-    wrapper.unmount()
-  })
-
-  it('工具轨包含全部七项能力', async () => {
-    const wrapper = await mountStudio()
-    const labels = wrapper.findAll('.tools__label').map((n) => n.text())
-    expect(labels).toEqual(['字体', '文选', '排版', '版式', '题写', '对照', '收藏'])
-    wrapper.unmount()
-  })
-
-  it('工具轨里没有无响应的假按钮：点击会打开对应面板', async () => {
-    const wrapper = await mountStudio()
-    await wrapper.findAll('.tools__btn')[0].trigger('click')
-    // 面板通过 teleport 渲染到 body
-    const dialogs = document.body.querySelectorAll('[role="dialog"]')
-    expect(dialogs.length).toBe(1)
-    expect(document.body.querySelector('.panel__title')?.textContent ?? '').toContain('择字')
-    wrapper.unmount()
-  })
-
-  it('翻页按钮切换到下一篇古文并循环', async () => {
-    const wrapper = await mountStudio()
-    const next = wrapper.get('[aria-label="下一篇"]')
-    await next.trigger('click')
-    expect(wrapper.get('.sheet__title').text()).toBe(texts[1].title)
-
-    // 从最后一篇继续下一篇应回到第一篇
-    for (let i = 0; i < texts.length - 1; i += 1) {
-      await wrapper.get('[aria-label="下一篇"]').trigger('click')
-    }
-    expect(wrapper.get('.sheet__title').text()).toBe(texts[0].title)
+  it('从首页的古文入口进入时打开文选面板', async () => {
+    const wrapper = await mountStudio('/studio?panel=texts')
+    await nextTick()
+    expect(document.body.querySelector('[role="dialog"] .panel__title')?.textContent).toContain('文选')
     wrapper.unmount()
   })
 })

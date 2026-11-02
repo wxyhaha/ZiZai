@@ -6,8 +6,8 @@
 
 每款字体会产出两类文件：
 
-1. **内容子集**（`*.woff2`，130–400 kB）
-   字符集 = 站内全部已收录古文 + 字体说明 + 界面文案（约 640 字）。
+1. **内容子集**（`*.woff2`，大小随字体与文章字符变化；本轮约 203–566 kB）
+   字符集 = 站内全部已收录古文 + 字体说明 + 界面文案（本轮 1,047 个字符）。
    这是默认加载的文件，覆盖站内所有内容，首屏与阅读页都不缺字。
 
 2. **完整字体**（`*-full.woff2`，1.5–8 MB）
@@ -39,6 +39,7 @@ Google Fonts 把 Noto Serif SC 切成 101 个 unicode-range 分片，全部声�
 
 新增古文、字体条目或界面文案后必须重跑本脚本，否则内容子集会缺字。
 用法：`npm run fonts:build`（或 `python -I scripts/build-font-subsets.py <源目录>`）
+只更新阅读内容子集时可加 `--content-only`，保留现有完整字体文件不重建。
 
 源目录需包含（允许放在子目录里）：
     Huiwen.ttf
@@ -336,7 +337,9 @@ def write_coverage(coverage):
 def main():
     # 默认目录与 scripts/FONTS-README.md 中约定的位置一致
     default_dir = os.path.join(ROOT, 'scripts', 'font-sources')
-    fonts_dir = sys.argv[1] if len(sys.argv) > 1 else default_dir
+    args = [arg for arg in sys.argv[1:] if arg != '--content-only']
+    content_only = '--content-only' in sys.argv[1:]
+    fonts_dir = args[0] if args else default_dir
     content_chars = collect_content_chars()
     content_cps = {ord(c) for c in content_chars}
     brand_chars = collect_brand_chars()
@@ -360,7 +363,7 @@ def main():
     # 并在 global.scss 里关掉 font-synthesis —— 不做假粗体。
     brand_src = find(fonts_dir, 'Huiwen*.ttf') or find(fonts_dir, 'NotoSerifSC*.ttf')
     brand_source_name = '汇文明朝体' if brand_src and 'Huiwen' in brand_src else '思源宋体'
-    if brand_src:
+    if brand_src and not content_only:
         brand_cmap = TTFont(brand_src).getBestCmap()
         brand_missing = ''.join(sorted(c for c in brand_chars if ord(c) not in brand_cmap))
         out = os.path.join(assets, 'brand', 'brand-serif.woff2')
@@ -378,6 +381,8 @@ def main():
             '%-22s %7.1f kB  %d chars  source %s  missing %s'
             % ('brand-serif', size / 1024, len(brand_cps), brand_source_name, brand_missing or '-')
         )
+    elif content_only:
+        print('SKIP brand-serif (content-only)')
     else:
         print('SKIP brand-serif (no usable serif source found)')
 
@@ -397,7 +402,10 @@ def main():
         sub_size = subset_to(src, sub_out, content_cps, weight=400)
 
         full_out = os.path.join(assets, spec['folder'], spec['full'])
-        full_size = subset_to(src, full_out, full_cps, weight=400)
+        if content_only:
+            full_size = os.path.getsize(full_out) if os.path.exists(full_out) else 0
+        else:
+            full_size = subset_to(src, full_out, full_cps, weight=400)
 
         extra_weights = spec.get('extra_weights') or []
         for w in extra_weights:
