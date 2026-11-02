@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { useFallingGlyphs, type FallingGlyph } from '@/composables/useFallingGlyphs'
 
-const { glyphs } = useFallingGlyphs()
+const { glyphs, nextGlyphCharacter } = useFallingGlyphs()
+
+function advanceGlyph(glyph: FallingGlyph) {
+  glyph.char = nextGlyphCharacter(glyph)
+}
 
 function glyphStyle(glyph: FallingGlyph) {
   return {
@@ -20,7 +24,13 @@ function glyphStyle(glyph: FallingGlyph) {
 <template>
   <!-- Background Han glyphs are decorative and excluded from the accessibility tree. -->
   <div class="glyph-field" aria-hidden="true">
-    <span v-for="glyph in glyphs" :key="glyph.id" class="glyph-field__item" :style="glyphStyle(glyph)">
+    <span
+      v-for="glyph in glyphs"
+      :key="glyph.id"
+      class="glyph-field__item"
+      :style="glyphStyle(glyph)"
+      @animationiteration="advanceGlyph(glyph)"
+    >
       {{ glyph.char }}
     </span>
   </div>

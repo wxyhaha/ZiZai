@@ -5,10 +5,12 @@ import pools from '@/data/home-glyph-pools.json'
 import { getFont } from '@/data/fonts'
 import {
   buildGlyphs,
+  createGlyphCharacterCycler,
   viewportForWidth,
   useFallingGlyphs,
   type FallingViewport,
 } from '@/composables/useFallingGlyphs'
+import FallingGlyphs from '@/components/home/FallingGlyphs.vue'
 
 const FONT_IDS = Object.keys(pools.fonts) as Array<keyof typeof pools.fonts>
 const FONT_ASSETS = Object.keys(import.meta.glob('../src/assets/fonts/home/*.woff2'))
@@ -97,6 +99,55 @@ describe('首页落字资源', () => {
 })
 
 describe('落字随机布局', () => {
+  it('同一位置耗尽对应字体字池前不重复字符，耗尽后也不与上一轮相同', () => {
+    const glyph = buildGlyphs({ seed: 20261102, viewport: 'desktop' })[0]
+    const pool = pools.fonts[glyph.fontId]
+    const cycle = createGlyphCharacterCycler(77)
+    let previous = glyph.char
+    const seen = new Set([previous])
+    const sequence = [previous]
+
+    for (let index = 1; index < pool.hanCount; index += 1) {
+      const next = cycle({ id: glyph.id, fontId: glyph.fontId, char: previous })
+      expect(next).not.toBe(previous)
+      expect(pool.chars).toContain(next)
+      expect(seen.has(next)).toBe(false)
+      seen.add(next)
+      sequence.push(next)
+      previous = next
+    }
+    expect(seen.size).toBe(pool.hanCount)
+
+    const repeatCycle = createGlyphCharacterCycler(77)
+    let repeatPrevious = glyph.char
+    const repeatedSequence = Array.from({ length: pool.hanCount - 1 }, () => {
+      const next = repeatCycle({ id: glyph.id, fontId: glyph.fontId, char: repeatPrevious })
+      repeatPrevious = next
+      return next
+    })
+    expect([glyph.char, ...repeatedSequence]).toEqual(sequence)
+
+    const afterExhaustion = cycle({ id: glyph.id, fontId: glyph.fontId, char: previous })
+    expect(afterExhaustion).not.toBe(previous)
+    expect(pool.chars).toContain(afterExhaustion)
+  })
+
+  it('落字动画每完成一轮就替换该节点的字，位置样式保持不变', async () => {
+    stubMatchMedia(false)
+    const wrapper = mount(FallingGlyphs, { attachTo: document.body })
+    await nextTick()
+
+    const glyph = wrapper.find('.glyph-field__item')
+    const previousCharacter = glyph.text()
+    const positionStyle = glyph.attributes('style')
+    glyph.element.dispatchEvent(new Event('animationiteration'))
+    await nextTick()
+
+    expect(glyph.text()).not.toBe(previousCharacter)
+    expect(glyph.attributes('style')).toBe(positionStyle)
+    wrapper.unmount()
+  })
+
   it('常用字占主要比例，同时保留少量长尾字', () => {
     const commonCharsByFont = new Map(
       FONT_IDS.map((id) => [
@@ -114,11 +165,11 @@ describe('落字随机布局', () => {
   })
 
   it.each([
-    ['mobile', 8],
-    ['tablet', 12],
-    ['desktop', 70],
-  ] as const)('%s viewports create %i balanced, varied glyphs', (viewport, count) => {
-    const glyphs = buildGlyphs({ seed: 20261102, viewport })
+    ['mobile', 8, 320],
+    ['tablet', 12, 768],
+    ['desktop', 70, 1920],
+  ] as const)('%s viewports create %i balanced, varied glyphs', (viewport, count, width) => {
+    const glyphs = buildGlyphs({ seed: 20261102, viewport, width })
     expect(glyphs).toHaveLength(count)
     expect(glyphs.filter((g) => g.side === 'left')).toHaveLength(count / 2)
     expect(glyphs.filter((g) => g.side === 'right')).toHaveLength(count / 2)
@@ -137,7 +188,7 @@ describe('落字随机布局', () => {
       const sizeLimits = {
         mobile: [24, 36],
         tablet: [26, 44],
-        desktop: [32, 64],
+        desktop: [42, 64],
       }[viewport]
       const driftLimits = {
         mobile: [8, 18],
@@ -160,19 +211,19 @@ describe('落字随机布局', () => {
       [320, 'mobile', 8],
       [390, 'mobile', 8],
       [768, 'tablet', 12],
-      [1024, 'desktop', 70],
+      [1024, 'desktop', 68],
       [1440, 'desktop', 70],
     ]
     for (const [width, viewport, count] of examples) {
       expect(viewportForWidth(width)).toBe(viewport)
-      expect(buildGlyphs({ seed: 9, viewport }).length).toBe(count)
+      expect(buildGlyphs({ seed: 9, viewport, width }).length).toBe(count)
     }
   })
 
-  it('keeps the 32px PC minimum on a short viewport by reducing glyph count when needed', () => {
+  it('keeps the 42px PC minimum on a short viewport by reducing glyph count when needed', () => {
     const glyphs = buildGlyphs({ seed: 20261102, viewport: 'desktop', width: 1024, height: 384 })
-    expect(glyphs).toHaveLength(54)
-    expect(glyphs.every((glyph) => glyph.size >= 32 && glyph.size <= 64)).toBe(true)
+    expect(glyphs).toHaveLength(28)
+    expect(glyphs.every((glyph) => glyph.size >= 42 && glyph.size <= 64)).toBe(true)
 
     const lanes = new Map<number, typeof glyphs>()
     for (const glyph of glyphs) {
@@ -225,11 +276,11 @@ describe('落字随机布局', () => {
   })
 
   it.each([
-    [1024, 568, 6],
+    [1024, 568, 4],
     [1280, 720, 6],
     [1344, 768, 6],
-    [1408, 768, 8],
-    [1440, 568, 8],
+    [1408, 768, 6],
+    [1440, 568, 6],
     [1920, 900, 8],
   ])('PC falling lanes stay separated and use distinct speeds at %i×%i', (width, height, laneCount) => {
     const layoutWidth = Math.floor(width / 64) * 64
@@ -248,7 +299,7 @@ describe('落字随机布局', () => {
       const sideCounts = [...lanes.values()]
         .filter((lane) => lane[0].side === side)
         .map((lane) => lane.length)
-      expect(new Set(sideCounts).size).toBeGreaterThan(1)
+      if (glyphs.length === 70) expect(new Set(sideCounts).size).toBeGreaterThan(1)
       expect(Math.max(...sideCounts) - Math.min(...sideCounts)).toBeLessThanOrEqual(6)
     }
 
@@ -265,7 +316,9 @@ describe('落字随机布局', () => {
       expect(Math.max(...xPositions) - Math.min(...xPositions)).toBeGreaterThan(12)
       const maximumSize = Math.max(...lane.map((glyph) => glyph.size))
       const minimumSize = Math.min(...lane.map((glyph) => glyph.size))
-      expect(maximumSize - minimumSize).toBeGreaterThanOrEqual(width === 1024 ? 1 : 8)
+      const safeVerticalMax = Math.floor((1.2 * layoutHeight * 0.84 / lane.length - 4) / 1.15)
+      expect(minimumSize).toBe(42)
+      expect(maximumSize).toBeLessThanOrEqual(Math.min(64, safeVerticalMax))
       expect(minimumGapPx).toBeGreaterThanOrEqual(maximumSize * 1.15 + 4 - 0.1)
     }
 

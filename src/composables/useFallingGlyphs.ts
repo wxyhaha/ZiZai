@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import homeGlyphPools from '@/data/home-glyph-pools.json'
 import { getFont } from '@/data/fonts'
 import { useReducedMotion } from './useReducedMotion'
@@ -75,7 +75,7 @@ const LAYOUT: Record<
 > = {
   mobile: { count: 8, safeWidth: 0.5, widthBasis: 320, fontMin: 24, fontMax: 36, driftMin: 8, driftMax: 18 },
   tablet: { count: 12, safeWidth: 0.46, widthBasis: 480, fontMin: 26, fontMax: 44, driftMin: 14, driftMax: 32 },
-  desktop: { count: 70, safeWidth: 0.3, widthBasis: 1024, fontMin: 32, fontMax: 64, driftMin: 10, driftMax: 22 },
+  desktop: { count: 70, safeWidth: 0.3, widthBasis: 1024, fontMin: 42, fontMax: 64, driftMin: 10, driftMax: 22 },
 }
 
 function isHanCharacter(char: string): boolean {
@@ -208,10 +208,51 @@ function chooseWeighted(pool: FontPool[], rand: () => number): FontPool {
   return pool[pool.length - 1]
 }
 
-function chooseGlyphCharacter(pool: FontPool, rand: () => number): string {
+function chooseGlyphCharacter(
+  pool: FontPool,
+  rand: () => number,
+  usedCharacters?: ReadonlySet<string>,
+): string | null {
   const useLongTail = pool.longTailChars.length > 0 && rand() < LONG_TAIL_GLYPH_PROBABILITY
-  const candidates = useLongTail || pool.commonChars.length === 0 ? pool.longTailChars : pool.commonChars
-  return candidates[Math.floor(rand() * candidates.length)]
+  const preferred = useLongTail ? pool.longTailChars : pool.commonChars
+  const fallback = useLongTail ? pool.commonChars : pool.longTailChars
+  for (const candidates of [preferred, fallback]) {
+    const available = usedCharacters
+      ? candidates.filter((character) => !usedCharacters.has(character))
+      : candidates
+    if (available.length > 0) return available[Math.floor(rand() * available.length)]
+  }
+  return null
+}
+
+/** Create a deterministic character stream that avoids repeats at each glyph position. */
+export function createGlyphCharacterCycler(seed: number) {
+  const rand = createRandom(seed)
+  const usedByGlyph = new Map<number, { fontId: FallingFontId; characters: Set<string> }>()
+
+  return (glyph: Pick<FallingGlyph, 'id' | 'fontId' | 'char'>): string => {
+    const pool = FONT_POOLS.find((entry) => entry.id === glyph.fontId)
+    if (!pool) return glyph.char
+
+    let history = usedByGlyph.get(glyph.id)
+    if (!history || history.fontId !== glyph.fontId) {
+      history = { fontId: glyph.fontId, characters: new Set([glyph.char]) }
+      usedByGlyph.set(glyph.id, history)
+    }
+
+    let next = chooseGlyphCharacter(pool, rand, history.characters)
+    if (next === null) {
+      // The position used its complete font pool; start a fresh shuffle bag
+      // while still preventing the just-finished character from repeating.
+      history.characters.clear()
+      history.characters.add(glyph.char)
+      next = chooseGlyphCharacter(pool, rand, history.characters)
+    }
+    if (next === null) return glyph.char
+
+    history.characters.add(next)
+    return next
+  }
 }
 
 export function viewportForWidth(width: number): FallingViewport {
@@ -390,7 +431,7 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
     return {
       id,
       laneId: lane.id,
-      char: chooseGlyphCharacter(pool, rand),
+      char: chooseGlyphCharacter(pool, rand) ?? '',
       fontId,
       fontFamily: pool.family,
       side: lane.side,
@@ -413,9 +454,12 @@ export function useFallingGlyphs(options: { seed?: number } = {}) {
   const width = ref(typeof window === 'undefined' ? 1440 : widthBucket(window.innerWidth))
   const prefersReduced = useReducedMotion()
   const seed = options.seed ?? randomSeed()
+  const nextGlyphCharacter = createGlyphCharacterCycler(seed ^ 0x9e3779b9)
   const glyphs = computed<FallingGlyph[]>(() => {
     if (prefersReduced.value) return []
-    return buildGlyphs({ seed, viewport: viewport.value, width: width.value, height: height.value })
+    return reactive(
+      buildGlyphs({ seed, viewport: viewport.value, width: width.value, height: height.value }),
+    )
   })
 
   let resizeFrame = 0
@@ -440,5 +484,5 @@ export function useFallingGlyphs(options: { seed?: number } = {}) {
     window.removeEventListener('resize', measure)
   })
 
-  return { glyphs }
+  return { glyphs, nextGlyphCharacter }
 }
