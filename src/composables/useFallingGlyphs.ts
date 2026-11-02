@@ -36,6 +36,7 @@ interface FontPool {
 export interface BuildGlyphsOptions {
   seed: number
   viewport: FallingViewport
+  height?: number
   count?: number
   fontWeights?: FallingFontWeights
 }
@@ -57,9 +58,9 @@ const LAYOUT: Record<
   FallingViewport,
   { count: number; safeWidth: number; widthBasis: number; fontMin: number; fontMax: number; driftMin: number; driftMax: number }
 > = {
-  mobile: { count: 18, safeWidth: 0.5, widthBasis: 320, fontMin: 24, fontMax: 36, driftMin: 8, driftMax: 18 },
-  tablet: { count: 24, safeWidth: 0.46, widthBasis: 480, fontMin: 26, fontMax: 44, driftMin: 14, driftMax: 32 },
-  desktop: { count: 48, safeWidth: 0.3, widthBasis: 1024, fontMin: 32, fontMax: 64, driftMin: 20, driftMax: 48 },
+  mobile: { count: 8, safeWidth: 0.5, widthBasis: 320, fontMin: 24, fontMax: 36, driftMin: 8, driftMax: 18 },
+  tablet: { count: 12, safeWidth: 0.46, widthBasis: 480, fontMin: 26, fontMax: 44, driftMin: 14, driftMax: 32 },
+  desktop: { count: 24, safeWidth: 0.3, widthBasis: 1024, fontMin: 32, fontMax: 64, driftMin: 20, driftMax: 48 },
 }
 
 function isHanCharacter(char: string): boolean {
@@ -124,6 +125,10 @@ export function viewportForWidth(width: number): FallingViewport {
   return 'desktop'
 }
 
+function heightBucket(height: number): number {
+  return Math.max(240, Math.round(height / 64) * 64)
+}
+
 export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
   const { seed, viewport } = options
   const layout = LAYOUT[viewport]
@@ -164,7 +169,7 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
       rand,
     )
     const sidePhases = shuffle(
-      sideIds.map((_, index) => (index + rand()) / sideIds.length),
+      sideIds.map((_, index) => (index + 0.5 + (rand() * 2 - 1) * 0.08) / sideIds.length),
       rand,
     )
     sideIds.forEach((id, index) => {
@@ -172,11 +177,20 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
       animationPhases[id] = sidePhases[index]
     })
   }
+  const sideDurations: Record<FallingSide, number> = {
+    left: 24 + rand() * 24,
+    right: 24 + rand() * 24,
+  }
+  const height = Math.max(240, options.height ?? { mobile: 844, tablet: 768, desktop: 900 }[viewport])
+  const sideCount = Math.ceil(count / 2)
+  const safeFontMax = Math.floor((1.2 * height * 0.84 / sideCount - 4) / 1.15)
+  const fontMin = Math.min(layout.fontMin, safeFontMax)
+  const fontMax = Math.max(fontMin, Math.min(layout.fontMax, safeFontMax))
 
   return Array.from({ length: count }, (_, id) => {
     const fontId = fontPlan[id]
     const pool = weightedPools.find((entry) => entry.id === fontId)!
-    const size = layout.fontMin + Math.round(rand() * (layout.fontMax - layout.fontMin))
+    const size = fontMin + Math.round(rand() * (fontMax - fontMin))
     const drift = Math.round(layout.driftMin + rand() * (layout.driftMax - layout.driftMin))
     const margin = viewport === 'mobile' ? 8 : viewport === 'tablet' ? 12 : 16
     const edge = ((1 - layout.safeWidth) / 2) * layout.widthBasis
@@ -186,8 +200,8 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
     const clampedMaxLeft = Math.max(minLeft, maxLeft)
     const safeLeft = minLeft + horizontalPositions[id] * (clampedMaxLeft - minLeft)
     const left = sides[id] === 'left' ? safeLeft : 100 - safeLeft - (size / layout.widthBasis) * 100
-    const duration = 24 + rand() * 24
-    const fade = (size - layout.fontMin) / Math.max(1, layout.fontMax - layout.fontMin)
+    const duration = sideDurations[sides[id]]
+    const fade = (size - fontMin) / Math.max(1, fontMax - fontMin)
 
     return {
       id,
@@ -210,11 +224,12 @@ export function useFallingGlyphs(options: { seed?: number } = {}) {
   const viewport = ref<FallingViewport>(
     typeof window === 'undefined' ? 'desktop' : viewportForWidth(window.innerWidth),
   )
+  const height = ref(typeof window === 'undefined' ? 900 : heightBucket(window.innerHeight))
   const prefersReduced = useReducedMotion()
   const seed = options.seed ?? randomSeed()
   const glyphs = computed<FallingGlyph[]>(() => {
     if (prefersReduced.value) return []
-    return buildGlyphs({ seed, viewport: viewport.value })
+    return buildGlyphs({ seed, viewport: viewport.value, height: height.value })
   })
 
   let resizeFrame = 0
@@ -222,10 +237,12 @@ export function useFallingGlyphs(options: { seed?: number } = {}) {
     if (typeof window === 'undefined' || resizeFrame !== 0) return
     resizeFrame = requestAnimationFrame(() => {
       resizeFrame = 0
-      // Only crossing a device band regenerates the scene. Ordinary resize
-      // events do not reroll glyphs or trigger repeated component updates.
+      // Only crossing a width or coarse height band regenerates the scene.
+      // Ordinary resize events do not reroll glyphs repeatedly.
       const nextViewport = viewportForWidth(window.innerWidth)
       if (nextViewport !== viewport.value) viewport.value = nextViewport
+      const nextHeight = heightBucket(window.innerHeight)
+      if (nextHeight !== height.value) height.value = nextHeight
     })
   }
 

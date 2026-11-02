@@ -97,9 +97,9 @@ describe('首页落字资源', () => {
 
 describe('落字随机布局', () => {
   it.each([
-    ['mobile', 18],
-    ['tablet', 24],
-    ['desktop', 48],
+    ['mobile', 8],
+    ['tablet', 12],
+    ['desktop', 24],
   ] as const)('%s viewports create %i balanced, varied glyphs', (viewport, count) => {
     const glyphs = buildGlyphs({ seed: 20261102, viewport })
     expect(glyphs).toHaveLength(count)
@@ -135,11 +135,11 @@ describe('落字随机布局', () => {
 
   it('device widths map to the intended responsive glyph counts', () => {
     const examples: Array<[number, FallingViewport, number]> = [
-      [320, 'mobile', 18],
-      [390, 'mobile', 18],
-      [768, 'tablet', 24],
-      [1024, 'desktop', 48],
-      [1440, 'desktop', 48],
+      [320, 'mobile', 8],
+      [390, 'mobile', 8],
+      [768, 'tablet', 12],
+      [1024, 'desktop', 24],
+      [1440, 'desktop', 24],
     ]
     for (const [width, viewport, count] of examples) {
       expect(viewportForWidth(width)).toBe(viewport)
@@ -173,6 +173,31 @@ describe('落字随机布局', () => {
       expect(Math.max(...positions) - Math.min(...positions)).toBeGreaterThan(12)
       const phases = sideGlyphs.map((glyph) => -glyph.delay / glyph.duration)
       expect(Math.max(...phases) - Math.min(...phases)).toBeGreaterThan(0.8)
+    }
+  })
+
+  it.each([
+    ['mobile', 320],
+    ['mobile', 844],
+    ['tablet', 568],
+    ['desktop', 568],
+    ['desktop', 900],
+  ] as const)('%s glyph tracks stay separated at %i px height', (viewport, height) => {
+    const glyphs = buildGlyphs({ seed: 20261102, viewport, height })
+    for (const side of ['left', 'right'] as const) {
+      const sideGlyphs = glyphs.filter((glyph) => glyph.side === side)
+      expect(new Set(sideGlyphs.map((glyph) => glyph.duration))).toHaveLength(1)
+
+      const phases = sideGlyphs.map((glyph) => -glyph.delay / glyph.duration).sort((a, b) => a - b)
+      const cyclicGaps = phases.map((phase, index) => (phases[(index + 1) % phases.length] ?? 1) - phase + (index === phases.length - 1 ? 1 : 0))
+      const minimumGapPx = Math.min(...cyclicGaps) * height * 1.2
+      const maximumRenderedSize = Math.max(
+        ...sideGlyphs.map((glyph) =>
+          viewport === 'desktop' ? Math.min(glyph.size, Math.max(12, height * 0.073 - 4)) : glyph.size,
+        ),
+      )
+
+      expect(minimumGapPx).toBeGreaterThanOrEqual(maximumRenderedSize * 1.15 + 4 - 0.1)
     }
   })
 
