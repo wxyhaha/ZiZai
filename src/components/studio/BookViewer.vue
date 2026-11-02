@@ -4,6 +4,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { LayoutMode } from '@/types'
 import { paginateText, type BookPage } from '@/composables/usePagination'
 import ReadingSheet from './ReadingSheet.vue'
+import CurvedPageTurn from './CurvedPageTurn.vue'
+import { TURN_CLEARANCE } from '@/composables/pageTurnGeometry'
+import { useReducedMotion } from '@/composables/useReducedMotion'
 
 const props = defineProps<{
   title: string
@@ -26,10 +29,23 @@ const singlePage = ref(true)
 const spreadStart = ref(0)
 let observer: ResizeObserver | undefined
 let generation = 0
+const reducedMotion = useReducedMotion()
+const turn = ref<{ front?: BookPage; back?: BookPage; fromRight: boolean; target: number; forward: boolean } | null>(null)
+const sheetProps = computed(() => ({ ...props, single: false }))
+function finishTurn() {
+  if (turn.value) spreadStart.value = turn.value.target
+  turn.value = null
+}
+watch(reducedMotion, (reduced) => { if (reduced) finishTurn() })
 
 const visiblePages = computed(() => {
-  const count = singlePage.value ? 1 : 2
-  return pages.value.slice(spreadStart.value, spreadStart.value + count)
+  if (singlePage.value) return [pages.value[0]]
+  if (turn.value) {
+    return turn.value.forward
+      ? [pages.value[spreadStart.value], pages.value[turn.value.target + 1]]
+      : [pages.value[turn.value.target], pages.value[spreadStart.value + 1]]
+  }
+  return [pages.value[spreadStart.value], pages.value[spreadStart.value + 1]]
 })
 
 const pageStatus = computed(() => {
@@ -96,7 +112,7 @@ function resolvePages(
   measureCharacter?: (character: string, fontSize: number, fontFamily: string) => number,
 ) {
   const width = Math.min(1260, Math.max(320, size.value.width))
-  const height = Math.max(280, size.value.height)
+  const height = Math.max(160, size.value.height - TURN_CLEARANCE * 2)
   const singleWidth = Math.min(width, 760)
   const singlePages = paginateText(getPaginationInput(singleWidth, height, measureCharacter))
 
@@ -117,6 +133,7 @@ function resolvePages(
 }
 
 async function paginate(resetToFirstPage: boolean) {
+  finishTurn()
   const currentGeneration = ++generation
   if (resetToFirstPage) spreadStart.value = 0
   // 先用方正的汉字字面估算同步绘制，避免等字体网络请求时书页空白。
@@ -138,17 +155,29 @@ function updateSize() {
   if (!stage.value) return
   const rect = stage.value.getBoundingClientRect()
   if (rect.width <= 0 || rect.height <= 0) return
+  if (size.value.width === rect.width && size.value.height === rect.height) return
   size.value = { width: rect.width, height: rect.height }
   void paginate(false)
 }
 
-function previousSpread() {
-  spreadStart.value = Math.max(0, spreadStart.value - 2)
+function moveSpread(forward: boolean) {
+  if (turn.value || (forward ? !canGoForward.value : !canGoBack.value)) return
+  const oldStart = spreadStart.value
+  const target = oldStart + (forward ? 2 : -2)
+  if (!reducedMotion.value) {
+    turn.value = {
+      front: pages.value[oldStart + (forward ? 1 : 0)],
+      back: pages.value[target + (forward ? 0 : 1)],
+      fromRight: forward !== (props.layout === 'vertical'),
+      target,
+      forward,
+    }
+  } else {
+    spreadStart.value = target
+  }
 }
-
-function nextSpread() {
-  if (canGoForward.value) spreadStart.value += 2
-}
+function previousSpread() { moveSpread(false) }
+function nextSpread() { moveSpread(true) }
 
 watch(
   () => [
@@ -178,6 +207,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   generation += 1
+  finishTurn()
   observer?.disconnect()
   window.removeEventListener('resize', updateSize)
 })
@@ -185,7 +215,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="book-viewer" aria-label="书页阅读区">
-    <div ref="stage" class="book-viewer__stage">
+    <div ref="stage" class="book-viewer__stage" :style="{ '--turn-clearance': `${TURN_CLEARANCE}px` }">
       <div
         class="book-spread"
         :class="{
@@ -196,22 +226,23 @@ onBeforeUnmount(() => {
         :data-page-count="pages.length"
         :data-page-mode="singlePage ? 'single' : 'spread'"
       >
-        <ReadingSheet
-          v-for="page in visiblePages"
-          :key="`${layout}-${page.index}`"
-          :page="page"
-          :title="title"
-          :author="author"
-          :era="era"
-          :font-family="fontFamily"
-          :layout="layout"
-          :font-size="fontSize"
-          :line-height="lineHeight"
-          :letter-spacing="letterSpacing"
-          :content-width="contentWidth"
-          :is-custom="isCustom"
-          :page-position="page.index === spreadStart ? 'first' : 'second'"
-          :single="singlePage"
+        <template v-for="(page, slot) in visiblePages" :key="slot">
+          <ReadingSheet
+            v-if="page"
+            v-bind="sheetProps"
+            :page="page"
+            :page-position="slot === 0 ? 'first' : 'second'"
+            :single="singlePage"
+          />
+          <div v-else class="book-blank" aria-hidden="true" />
+        </template>
+        <CurvedPageTurn
+          v-if="turn"
+          :front="turn.front"
+          :back="turn.back"
+          :from-right="turn.fromRight"
+          :sheet-props="sheetProps"
+          @finish="finishTurn"
         />
       </div>
     </div>
@@ -222,7 +253,7 @@ onBeforeUnmount(() => {
         type="button"
         class="book-nav__button"
         aria-label="上一组页面"
-        :disabled="!canGoBack"
+        :disabled="!canGoBack || !!turn"
         @click="previousSpread"
       >
         <ChevronLeft :size="17" aria-hidden="true" />
@@ -233,7 +264,7 @@ onBeforeUnmount(() => {
         type="button"
         class="book-nav__button"
         aria-label="下一组页面"
-        :disabled="!canGoForward"
+        :disabled="!canGoForward || !!turn"
         @click="nextSpread"
       >
         <ChevronRight :size="17" aria-hidden="true" />
@@ -272,6 +303,9 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   max-width: 1260px;
+  height: calc(100% - var(--turn-clearance) * 2);
+  isolation: isolate;
+  filter: drop-shadow(0 12px 16px rgb(58 47 35 / 9%));
 
   &--single {
     .sheet {
@@ -282,18 +316,22 @@ onBeforeUnmount(() => {
 
   &--double {
     gap: 4px;
+    border-radius: 3px;
+    box-shadow: 0 2px 0 var(--zz-paper), 0 3px 0 var(--zz-line),
+      0 5px 0 var(--zz-paper-reading), 0 6px 0 var(--zz-line),
+      0 8px 0 var(--zz-paper-deep);
 
     &::before {
       content: '';
       position: absolute;
-      z-index: 3;
+      z-index: 10;
       top: 0;
       bottom: 0;
       left: 50%;
-      width: 12px;
+      width: 48px;
       transform: translateX(-50%);
       pointer-events: none;
-      background: linear-gradient(90deg, transparent, rgb(80 62 44 / 5%), transparent);
+      background: linear-gradient(90deg, transparent, rgb(80 62 44 / 6%) 35%, rgb(80 62 44 / 18%) 49%, rgb(255 255 255 / 25%) 53%, rgb(80 62 44 / 5%) 68%, transparent);
     }
   }
 
@@ -345,5 +383,11 @@ onBeforeUnmount(() => {
     letter-spacing: var(--zz-track-tight);
     font-variant-numeric: tabular-nums;
   }
+}
+.book-blank {
+  flex: 1 1 0;
+  height: 100%;
+  background: var(--zz-paper-reading);
+  border: 1px solid var(--zz-line);
 }
 </style>

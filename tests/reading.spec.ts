@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import ReadingView from '@/views/ReadingView.vue'
+import CurvedPageTurn from '@/components/studio/CurvedPageTurn.vue'
 import FontPickerPanel from '@/components/studio/FontPickerPanel.vue'
 import TextPickerPanel from '@/components/studio/TextPickerPanel.vue'
 import TypographyPanel from '@/components/studio/TypographyPanel.vue'
@@ -67,6 +68,11 @@ describe('赏字书页', () => {
     expect(long.findAll('.sheet')).toHaveLength(2)
     const before = long.get('.sheet').attributes('data-page')
     await long.get('[aria-label="下一组页面"]').trigger('click')
+    expect(long.get('.sheet').attributes('data-page')).toBe(before)
+    expect(long.get('[aria-label="下一组页面"]').attributes('disabled')).toBeDefined()
+    long.findComponent(CurvedPageTurn).vm.$emit('finish')
+    await nextTick()
+    expect(long.findComponent(CurvedPageTurn).exists()).toBe(false)
     expect(long.get('.sheet').attributes('data-page')).not.toBe(before)
     long.unmount()
   })
@@ -75,6 +81,8 @@ describe('赏字书页', () => {
     const wrapper = await mountStudio()
     const next = wrapper.get('[aria-label="下一组页面"]')
     await next.trigger('click')
+    wrapper.findComponent(CurvedPageTurn).vm.$emit('finish')
+    await nextTick()
     expect(wrapper.get('.sheet').attributes('data-page')).not.toBe('1')
 
     const font = fonts.find((entry) => entry.id !== fonts[0].id)!

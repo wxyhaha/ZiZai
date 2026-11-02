@@ -89,7 +89,7 @@ const styleVars = computed(() => ({
   display: flex;
   border: 1px solid var(--zz-line);
   border-radius: 1px;
-  background: var(--zz-paper-reading);
+  background: linear-gradient(90deg, rgb(255 255 255 / 15%), transparent 18%, transparent 80%, rgb(80 62 44 / 4%)), var(--zz-paper-reading);
   box-shadow: 0 8px 28px rgb(58 47 35 / 3.5%);
   overflow: hidden;
 
@@ -107,17 +107,43 @@ const styleVars = computed(() => ({
     border-left-color: var(--zz-line-soft);
   }
 
+  &--single {
+    overflow: visible;
+    border-radius: 2px 3px 3px 2px;
+    box-shadow: 1px 2px 0 var(--zz-paper), 2px 3px 0 var(--zz-line),
+      3px 5px 0 var(--zz-paper-reading), 4px 6px 0 var(--zz-line-soft),
+      0 12px 24px rgb(58 47 35 / 8%);
+  }
+
   &--single::after {
     content: '';
     position: absolute;
     z-index: 2;
-    right: 0;
-    bottom: 0;
-    width: 24px;
-    height: 24px;
+    top: -5px;
+    bottom: -5px;
+    left: -42px;
+    width: 64px;
     pointer-events: none;
-    background: linear-gradient(135deg, transparent 48%, rgb(92 75 54 / 5%) 50%, var(--zz-paper) 100%);
-    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    // 圆筒大部分伸出纸面，内侧仅占 22px 页边距，避免遮住正文。
+    border-radius: 50% / 8px;
+    background:
+      radial-gradient(ellipse at 50% 50%, var(--zz-paper-deep) 42%, var(--zz-line-strong) 55%, var(--zz-paper) 68%, transparent 73%) top center / 100% 12px no-repeat,
+      radial-gradient(ellipse at 50% 50%, var(--zz-paper-deep) 42%, var(--zz-line) 58%, transparent 73%) bottom center / 100% 10px no-repeat,
+      linear-gradient(
+        90deg,
+        var(--zz-line-strong) 0%,
+        var(--zz-paper-deep) 10%,
+        var(--zz-paper-reading) 30%,
+        var(--zz-paper-raised) 49%,
+        var(--zz-paper) 65%,
+        var(--zz-paper-deep) 85%,
+        var(--zz-line-strong) 100%
+      );
+    box-shadow:
+      inset 1px 0 1px rgb(255 255 255 / 35%),
+      inset -1px 0 2px rgb(58 47 35 / 12%),
+      10px 2px 13px -6px rgb(58 47 35 / 25%),
+      -4px 8px 12px -6px rgb(58 47 35 / 18%);
   }
 
   &__inner {
