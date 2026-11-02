@@ -1,0 +1,44 @@
+/* 由 scripts/build-font-subsets.py 生成，请勿手改。 */
+/* 阅读字体子集：只被 ReadingView 引用，随赏字路由懒加载。 */
+/* 完整字体（*-full.woff2）不在这里声明，由 useFontLoading 按需注入。 */
+
+@font-face {
+  font-family: "Huiwen Mincho";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/huawen-mingchao/huawen-mingchao.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "LXGW WenKai";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/lxgw-wenkai/lxgw-wenkai.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Zhuque Fangsong";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/zhuque-fangsong/zhuque-fangsong.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/noto-serif-sc/noto-serif-sc.woff2") format("woff2");
+}
+
+/* 标题用的 500 字重切片，避免浏览器对 400 做合成加粗（会糊） */
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../../assets/fonts/noto-serif-sc/noto-serif-sc-500.woff2") format("woff2");
+}

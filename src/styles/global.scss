@@ -1,0 +1,188 @@
+@use './breakpoints' as bp;
+
+/* ==========================================================================
+   字在 · 全局样式
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  // `100dvh` 在移动端随地址栏变化，但只在布局处使用，不做字号缩放
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--zz-font-sans);
+  font-size: var(--zz-text-base);
+  color: var(--zz-ink);
+  background: var(--zz-paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  // 中文正文需要更松的默认行高
+  line-height: 1.8;
+  // 站内字体都是真实字形，不做浏览器合成的假粗体/假斜体：
+  // 合成加粗会让笔画糊在一起，是这个站点最不该出现的效果。
+  font-synthesis: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+svg {
+  display: block;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ---- 焦点：键盘用户必须有清晰的朱砂描边 ---- */
+:focus-visible {
+  outline: var(--zz-focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--zz-radius-xs);
+}
+
+// 鼠标点击不显示焦点环，键盘操作才显示
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---- 屏幕阅读器专用文本 ---- */
+.zz-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- 跳至主内容：默认隐藏，聚焦时出现 ---- */
+.zz-skip-link {
+  position: fixed;
+  top: var(--zz-space-3);
+  left: var(--zz-space-3);
+  z-index: 200;
+  padding: var(--zz-space-2) var(--zz-space-4);
+  background: var(--zz-paper-ui);
+  border: 1px solid var(--zz-accent);
+  border-radius: var(--zz-radius-sm);
+  font-family: var(--zz-font-serif);
+  font-size: var(--zz-text-sm);
+  letter-spacing: var(--zz-track-normal);
+  color: var(--zz-accent);
+  transform: translateY(-160%);
+  transition: transform var(--zz-dur-base) var(--zz-ease-out);
+
+  &:focus-visible {
+    transform: translateY(0);
+  }
+}
+
+/* ---- 纸张肌理 ----
+   两层极稀疏的点阵，肉眼几乎不可见，仅让大面积纸色不显「塑料感」。
+   用 fixed 伪元素而非 background-image 叠加，避免影响滚动性能。 */
+.zz-grain {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: var(--zz-grain-opacity);
+    background-image:
+      radial-gradient(rgb(84 67 50 / 9%) 0.55px, transparent 0.95px),
+      radial-gradient(rgb(146 126 98 / 8%) 0.55px, transparent 0.95px);
+    background-size:
+      8px 8px,
+      13px 13px;
+    background-position:
+      0 0,
+      6px 4px;
+  }
+}
+
+/* ---- 页面切换过渡 ---- */
+.zz-fade-enter-active,
+.zz-fade-leave-active {
+  transition: opacity var(--zz-dur-slow) var(--zz-ease-soft);
+}
+
+.zz-fade-enter-from,
+.zz-fade-leave-to {
+  opacity: 0;
+}
+
+/* ---- 减少动态效果：所有装饰动画一律停止 ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- 打印：只保留书页 ---- */
+@media print {
+  body {
+    background: #fff;
+  }
+}

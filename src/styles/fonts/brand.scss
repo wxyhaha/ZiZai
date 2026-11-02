@@ -1,0 +1,13 @@
+/* 由 scripts/build-font-subsets.py 生成，请勿手改。 */
+/* 品牌子集：只覆盖首页/页头/页脚/关于弹层的展示文案，随首屏加载。 */
+/* 来源字体：汇文明朝体 */
+/* 单一字重 400。展示层一律用 400 请求字形，配合 font-synthesis: none */
+/* 保证永远不会出现浏览器合成的假粗体。 */
+
+@font-face {
+  font-family: "ZiZai Brand Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/brand/brand-serif.woff2") format("woff2");
+}

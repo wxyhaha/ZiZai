@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+<title>字在·页面设计稿</title><desc>可编辑矢量设计稿，文字和控件均为独立 SVG 元素。</desc>
+<rect width="1440" height="900" fill="#F7F4EC"/>
+<defs><pattern id="paper" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="3" cy="4" r=".42" fill="#BCA98E" opacity=".22"/><circle cx="13" cy="11" r=".35" fill="#BCA98E" opacity=".17"/></pattern></defs><rect width="1440" height="900" fill="url(#paper)"/>
+<g id="navigation">
+<text x="84" y="71" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="30" font-weight="500" letter-spacing="3" opacity="1">字在</text>
+<rect x="175" y="44" width="19" height="27" rx="1" fill="none" stroke="#9A5548" stroke-width="0.85" opacity="1"/>
+<text x="185" y="61" text-anchor="middle" fill="#9A5548" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="10" font-weight="400" letter-spacing="0" opacity="1">印</text>
+<text x="1120" y="68" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="15" font-weight="400" letter-spacing="3" opacity="1">首页</text>
+<text x="1210" y="68" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="15" font-weight="400" letter-spacing="3" opacity="1">赏字</text>
+<text x="1300" y="68" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="21" font-weight="400" letter-spacing="0" opacity="1">···</text>
+<line x1="1208" y1="80" x2="1253" y2="80" stroke="#9A5548" stroke-width="1.4" opacity="1"/>
+</g>
+<g id="background-workspace">
+<rect x="84" y="150" width="1140" height="640" rx="4" fill="#F6F1E7" stroke="#DFD6C8" stroke-width="1" opacity="1"/>
+<text x="620" y="302" text-anchor="middle" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="39" font-weight="400" letter-spacing="5" opacity="1">项脊轩志</text>
+<text x="225" y="416" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="23" font-weight="400" letter-spacing="0" opacity="1">项脊轩，旧南阁子也。室仅方丈，可容一人居。</text>
+<text x="225" y="476" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="23" font-weight="400" letter-spacing="0" opacity="1">百年老屋，尘泥渗漉，雨泽下注。</text>
+<text x="225" y="536" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="23" font-weight="400" letter-spacing="0" opacity="1">又北向，不能得日，日过午已昏。</text>
+<rect x="0" y="0" width="1440" height="900" rx="0" fill="#2D231F" stroke="none" stroke-width="1" opacity="0.17"/>
+</g>
+<g id="font-drawer">
+<rect x="984" y="0" width="456" height="900" rx="0" fill="#FBF8F2" stroke="none" stroke-width="1" opacity="1"/>
+<text x="1030" y="71" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="27" font-weight="400" letter-spacing="2" opacity="1">择字 · 字体图鉴</text>
+<text x="1391" y="71" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="27" font-weight="400" letter-spacing="0" opacity="1">×</text>
+<line x1="1014" y1="106" x2="1410" y2="106" stroke="#DFD6C8" stroke-width="1" opacity="1"/>
+<text x="1030" y="152" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="14" font-weight="400" letter-spacing="0" opacity="1">挑选字形，感受不同笔意与气韵。</text>
+<rect x="1028" y="195" width="373" height="141" rx="7" fill="#F7F3EB" stroke="#9A5548" stroke-width="1.6" opacity="1"/>
+<text x="1054" y="240" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="22" font-weight="400" letter-spacing="0" opacity="1">汇文明朝体</text>
+<text x="1054" y="274" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="14" font-weight="400" letter-spacing="0" opacity="1">明朝风格 · 端正清雅</text>
+<text x="1327" y="280" text-anchor="middle" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="28" font-weight="400" letter-spacing="0" opacity="1">山月</text>
+<rect x="1028" y="361" width="373" height="141" rx="7" fill="#F7F3EB" stroke="#DFD6C8" stroke-width="1" opacity="1"/>
+<text x="1054" y="406" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="22" font-weight="400" letter-spacing="0" opacity="1">清雅楷体</text>
+<text x="1054" y="440" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="14" font-weight="400" letter-spacing="0" opacity="1">楷书风格 · 温润舒展</text>
+<text x="1327" y="446" text-anchor="middle" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="28" font-weight="400" letter-spacing="0" opacity="1">竹影</text>
+<rect x="1028" y="527" width="373" height="141" rx="7" fill="#F7F3EB" stroke="#DFD6C8" stroke-width="1" opacity="1"/>
+<text x="1054" y="572" text-anchor="start" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="22" font-weight="400" letter-spacing="0" opacity="1">传统宋体</text>
+<text x="1054" y="606" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="14" font-weight="400" letter-spacing="0" opacity="1">宋体风格 · 适合正文</text>
+<text x="1327" y="612" text-anchor="middle" fill="#322E2A" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="28" font-weight="400" letter-spacing="0" opacity="1">纸上</text>
+<text x="1030" y="765" text-anchor="start" fill="#897E70" font-family="&#x27;Noto Serif CJK SC&#x27;, &#x27;Songti SC&#x27;, &#x27;SimSun&#x27;, serif" font-size="13" font-weight="400" letter-spacing="0" opacity="1">字体文件与授权信息以正式审核版本为准。</text>
+</g>
+</svg>

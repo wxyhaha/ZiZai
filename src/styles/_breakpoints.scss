@@ -1,0 +1,38 @@
+// 断点
+$bp-desktop: 1024px;
+$bp-tablet: 1023px;
+$bp-mobile: 767px;
+$bp-narrow: 480px;
+$bp-short: 700px; // 高度断点：矮屏笔记本
+$bp-very-short: 600px;
+
+@mixin below($width) {
+  @media (max-width: #{$width}) {
+    @content;
+  }
+}
+
+@mixin above($width) {
+  @media (min-width: #{$width + 1px}) {
+    @content;
+  }
+}
+
+// 矮屏：优先压缩装饰与间距，绝不引入第二屏
+@mixin short-screen {
+  @media (max-height: #{$bp-short}) {
+    @content;
+  }
+}
+
+@mixin very-short-screen {
+  @media (max-height: #{$bp-very-short}) {
+    @content;
+  }
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}

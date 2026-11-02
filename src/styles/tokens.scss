@@ -1,0 +1,111 @@
+/* ==========================================================================
+   字在 · 设计令牌
+   唯一的视觉真相来源。组件只引用变量，不写裸色值。
+   与 DESIGN_SYSTEM.md 对齐；落地后的最终值见 docs/design-system.md。
+   ========================================================================== */
+
+:root {
+  /* ---- 纸 ---- */
+  --zz-paper: #f7f4ec;
+  --zz-paper-deep: #efe8db;
+  --zz-paper-reading: #f6f1e7;
+  --zz-paper-ui: #fbf9f4;
+  --zz-paper-raised: #f9f6f0;
+  --zz-paper-field: #fbf8f2;
+
+  /* ---- 墨 ---- */
+  --zz-ink: #322e2a;
+  --zz-ink-body: #443a32;
+  --zz-ink-soft: #5c5046;
+  --zz-ink-tagline: #5e534a;
+  --zz-muted: #897e70;
+  --zz-muted-soft: #908478;
+  --zz-drift: #b4a694;
+
+  /* ---- 线与朱砂 ---- */
+  --zz-line: #dfd6c8;
+  --zz-line-soft: #e7e0d3;
+  --zz-line-strong: #d2c5b4;
+  --zz-accent: #9a5548;
+  --zz-accent-soft: #f0e0da;
+  --zz-accent-wash: #f7eee7;
+  --zz-accent-line: #c3a69a;
+
+  /* ---- 字体 ----
+     'ZiZai Brand Serif' 是随首屏加载的展示子集（汇文明朝体，约 90 kB，
+     只覆盖首页/页头/页脚/关于弹层的文案）。
+     'Huiwen Mincho' / 'Noto Serif SC' 随赏字路由懒加载，作为正文与 UI 兜底。
+     整条链都是明朝/宋体风格，任何一环缺失都不会掉成黑体或方块。 */
+  --zz-font-serif: 'ZiZai Brand Serif', 'Huiwen Mincho', 'Noto Serif SC', 'Songti SC', 'STSong',
+    'SimSun', serif;
+  --zz-font-sans: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui,
+    sans-serif;
+  --zz-font-kai: 'LXGW WenKai', 'Kaiti SC', 'KaiTi', 'STKaiti', 'Noto Serif SC', serif;
+  --zz-font-fangsong: 'Zhuque Fangsong', 'FangSong', 'STFangsong', 'Noto Serif SC', serif;
+
+  /* ---- 字号阶梯 ---- */
+  --zz-text-2xs: 11px;
+  --zz-text-xs: 12px;
+  --zz-text-sm: 13px;
+  --zz-text-base: 15px;
+  --zz-text-md: 17px;
+  --zz-text-lg: 19px;
+  --zz-text-xl: 22px;
+  --zz-text-2xl: 30px;
+  --zz-text-display: clamp(64px, 9.2vw, 132px);
+
+  /* ---- 字距 (中文排版以「字距」而非 tracking 为节奏单位) ---- */
+  --zz-track-tight: 0.06em;
+  --zz-track-normal: 0.12em;
+  --zz-track-wide: 0.2em;
+  --zz-track-wider: 0.3em;
+  --zz-track-widest: 0.42em;
+
+  /* ---- 间距阶梯 (8 基准) ---- */
+  --zz-space-1: 4px;
+  --zz-space-2: 8px;
+  --zz-space-3: 12px;
+  --zz-space-4: 16px;
+  --zz-space-5: 24px;
+  --zz-space-6: 32px;
+  --zz-space-7: 48px;
+  --zz-space-8: 64px;
+  --zz-space-9: 96px;
+
+  /* ---- 圆角：书页与控件都很克制 ---- */
+  --zz-radius-xs: 2px;
+  --zz-radius-sm: 4px;
+  --zz-radius-md: 6px;
+  --zz-radius-lg: 7px;
+  --zz-radius-pill: 999px;
+
+  /* ---- 阴影：几乎不出现，只给悬浮书页极轻的一层 ---- */
+  --zz-shadow-sheet: 0 12px 45px rgb(58 47 35 / 5.5%);
+  --zz-shadow-layer: -15px 0 65px rgb(30 20 10 / 10%);
+
+  /* ---- 动效 ---- */
+  --zz-ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --zz-ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --zz-dur-fast: 140ms;
+  --zz-dur-base: 220ms;
+  --zz-dur-slow: 320ms;
+
+  /* ---- 布局 ---- */
+  --zz-header-h: 92px;
+  --zz-gutter: 6%;
+  --zz-container: 1540px;
+  --zz-focus-ring: 2px solid var(--zz-accent);
+
+  /* ---- 纸纹 ---- */
+  --zz-grain-opacity: 0.3;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --zz-header-h: 72px;
+    --zz-text-display: clamp(56px, 18vw, 80px);
+    /* 手机上 6% 在 375px 下只有 22.5px、在 320px 下只有 19px，
+       两者都不够宽；改成固定 16px，窄屏才有一致的呼吸感。 */
+    --zz-gutter: 16px;
+  }
+}

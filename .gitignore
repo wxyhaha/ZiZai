@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 字体源文件体积很大，不入库；只提交生成的 woff2 与源目录占位
+scripts/font-sources/*
+*.ttf
+*.otf
+!src/assets/fonts/**/*.woff2
+
+# 测试与构建缓存
+coverage
+.vitest
+*.tsbuildinfo
+.claude/
+
+# 保留字体源目录占位，但不提交源文件
+!scripts/font-sources/.gitkeep

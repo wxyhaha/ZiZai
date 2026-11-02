@@ -1,0 +1,20 @@
+/** 古文内容数据模型。与字体、版式完全解耦。 */
+
+export type TextCategory = '诗' | '词' | '赋' | '散文' | '其他'
+
+export interface TextEntry {
+  id: string
+  title: string
+  author: string
+  /** 朝代，例如「明」「北宋」 */
+  era?: string
+  category: TextCategory
+  /** 段落数组。每个元素是一个自然段，渲染为独立 <p>。 */
+  paragraphs: string[]
+  /** 原文校对来源，供后续核查使用 */
+  sourceUrl?: string
+  /** 题解 / 一句话介绍，用于选集卡片 */
+  summary?: string
+  /** 是否为短章（诗、词、短赋），影响默认版式建议 */
+  isShortForm?: boolean
+}
