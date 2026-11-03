@@ -5,22 +5,18 @@ on:
     branches: ['main']
   workflow_dispatch:
 
-# 赋予部署 GitHub Pages 所需的权限
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# 同一时间只允许一个部署任务运行，避免并发冲突
 concurrency:
   group: 'pages'
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # 构建任务：校验、打包生产产物并上传 Pages Artifact
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -49,14 +45,20 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
+  # 部署任务：独立 job 确保产物上传入库完成后再触发 Pages 发布，杜绝竞态导致的 400 错误
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
