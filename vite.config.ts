@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  base: process.env.BASE_URL || (process.env.GITHUB_ACTIONS ? '/ZiZai/' : '/'),
   plugins: [vue()],
   resolve: {
     alias: {
