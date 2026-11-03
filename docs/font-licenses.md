@@ -4,7 +4,7 @@
 > 每款字体都必须记录作者、原始来源、授权条款、是否允许再分发、核对日期。
 > 未核实的字体一律不得打包文件，只能以系统字体近似并在界面标注「示意」。
 >
-> 最近核对日期：2026-11-02
+> 最近核对日期：2026-11-03
 
 ---
 
@@ -14,17 +14,23 @@
 
 | 字体 | 授权 | 可再分发 | 本项目用途 | 子集体积 |
 |---|---|---|---|---|
-| 汇文明朝体 | **CC0 1.0**（公有领域贡献） | ✅ | 默认正文字体 + 首屏展示字体 | 387 kB / 104 kB |
-| 霞鹜文楷 | SIL OFL 1.1 | ✅ | 楷体正文 | 163 kB |
-| 朱雀仿宋 | SIL OFL 1.1 | ✅ | 仿宋正文 | 222 kB |
-| 思源宋体 | SIL OFL 1.1 | ✅ | 兜底字形 + 标题字重 | 149 kB |
+| 汇文明朝体 | **CC0 1.0**（公有领域贡献） | ✅ | 默认正文字体 + 首屏展示字体 | 576.9 kB |
+| 霞鹜文楷 | SIL OFL 1.1 | ✅ | 楷体正文 | 235.6 kB |
+| 朱雀仿宋 | SIL OFL 1.1 | ✅ | 仿宋正文 | 328.9 kB |
+| 思源宋体 | SIL OFL 1.1 | ✅ | 兜底字形 + 标题字重 | 207.1 kB |
+| 齐伋刻本 | SIL OFL 1.1 | ✅ | 明代套色雕版正文/展示 | 916.6 kB |
+| 霞鹜致宋 | IPA Font License v1.0 | ✅ | 明清文人刻本正文/展示 | 182.1 kB |
+| 源云明体 | SIL OFL 1.1 | ✅ | 仿宣纸墨晕木刻正文/展示 | 381.3 kB |
+| 一点明体 | IPA Font License v1.0 | ✅ | 清代善本传承正字正文/展示 | 189.8 kB |
+| 寒蝉活宋体 | SIL OFL 1.1 | ✅ | 活字斑驳飞白正文/展示 | 958.8 kB |
+| 韵草体 | SIL OFL 1.1 | ✅ | 晚明万历草书典籍展示 | 605.0 kB |
 
-**四款字体全部核实完毕，都可以随站点分发。** 不存在必须用系统字体替代的条目。
+**十款字体全部核实完毕，都可以随站点分发。** 不存在必须用系统字体替代的条目。
 
 每款字体都产出两种文件：
 
-- **内容子集** `*.woff2`（104–387 kB）：覆盖站内已收录的全部文字，随页面加载；
-- **完整字体** `*-full.woff2`（1.3–4.3 MB）：覆盖 GB2312 全字，
+- **内容子集** `*.woff2`（182–959 kB）：覆盖站内已收录的全部文字，随页面加载；
+- **完整字体** `*-full.woff2`（1.2–6.4 MB）：覆盖 GB2312 全字，
   **只在用户题写出现缺字时按需拉取一次**，不在页面加载时请求。
 
 ---
@@ -146,7 +152,128 @@ OFL.txt 同时列有 `Copyright 2020 The Klee Project Authors`。
 
 ---
 
-## 五、字体子集的维护约束
+## 五、齐伋刻本 Qiji Font
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 齐伋刻本 / Qiji Font |
+| 版本 | 1.000 |
+| 作者 | 黄令东（Lingdong Huang） |
+| 原始来源 | https://github.com/LingDong-/qiji-font |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://github.com/LingDong-/qiji-font/blob/master/OFL.txt |
+| 允许再分发 | ✅ 是 |
+| 本项目用途 | 明代万历套印善本风格展示与长文阅读（内容子集 916.6 kB；完整字体 6.3 MB） |
+| 核对日期 | 2026-11-03 |
+| 核对方式 | 读取 GitHub 仓库 `OFL.txt`；读取字体 name 表元数据确认 |
+
+**已知限制**：
+- 提取自明代万历闵齐伋、凌濛初套色雕版孤本，保留了古拙的雕刀斧凿痕迹与古籍排印风貌。
+- 原始古籍未包含拉丁字母和现代标点符号（详见子集构建缺字报告），遇到时会自动回退到衬线字体。
+
+---
+
+## 六、霞鹜致宋 LXGW ZhiSong
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 霞鹜致宋 / LXGW ZhiSong (Classic) |
+| 版本 | 0.220 |
+| 作者 | LXGW（落霞孤鹜） |
+| 原始来源 | https://github.com/lxgw/LxgwZhiSong |
+| 授权 | IPA Font License v1.0 |
+| 授权全文 | https://github.com/lxgw/LxgwZhiSong/blob/main/LICENSE.md |
+| 允许再分发 | ✅ 是 |
+| 本项目用途 | 明末清初文人刻本风格正文与展示（内容子集 182.1 kB；完整字体 1.2 MB） |
+| 核对日期 | 2026-11-03 |
+| 核对方式 | 读取 GitHub 仓库 `LICENSE.md`，基于 IPAex 明朝及开源项目衍生，遵循 IPA Font License 1.0 协议规范 |
+
+**已知限制**：
+- 选用 Classic 经典刻本字形版，中宫紧敛、骨力挺拔，保留传统旧式印刷字形审美。
+
+---
+
+## 七、源云明体 GenWanMin
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 源云明体 / GenWanMin (TC Regular) |
+| 版本 | 1.501 |
+| 作者 | ButTaiwan |
+| 原始来源 | https://github.com/ButTaiwan/genwan-font |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://github.com/ButTaiwan/genwan-font/blob/master/LICENSE.txt |
+| 允许再分发 | ✅ 是 |
+| 本项目用途 | 仿宣纸墨晕木刻质感正文与展示（内容子集 381.3 kB；完整字体 2.6 MB） |
+| 核对日期 | 2026-11-03 |
+| 核对方式 | 基于 Source Han Serif（思源宋体）改制，遵循 SIL OFL 1.1，读取 GitHub 仓库 `LICENSE.txt` 确认 |
+
+**已知限制**：
+- 算法模拟木刻在宣纸上刷印微墨晕圆角效果，特别适合模拟宣纸与竹纸上的古籍排印。
+
+---
+
+## 八、一点明体 I.Ming
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 一点明体 / I.Ming |
+| 版本 | 8.10 |
+| 作者 | 刻石录（ichitenfont） |
+| 原始来源 | https://github.com/ichitenfont/I.Ming |
+| 授权 | IPA Font License v1.0 |
+| 授权全文 | https://github.com/ichitenfont/I.Ming/blob/master/COPYING |
+| 允许再分发 | ✅ 是 |
+| 本项目用途 | 清代善本与《康熙字典》传承正字正文/展示（内容子集 189.8 kB；完整字体 1.2 MB） |
+| 核对日期 | 2026-11-03 |
+| 核对方式 | 基于 IPA 明朝，遵循 IPA Font License 1.0，读取仓库 `COPYING` 文件确认 |
+
+**已知限制**：
+- 恪守《康熙字典》与清代善本传承正字字理，刀刀见锋，部分简化字或俗写保留传统字形。
+
+---
+
+## 九、寒蝉活宋体 Chill HuoSong
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 寒蝉活宋体 / Chill HuoSong |
+| 版本 | 1.000 |
+| 作者 | Warren2060（寒蝉字型） |
+| 原始来源 | https://github.com/Warren2060/ChillMovableType |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://github.com/Warren2060/ChillMovableType/blob/main/LICENSE |
+| 允许再分发 | ✅ 是 |
+| 本项目用途 | 模拟活字印刷斑驳做旧飞白正文/展示（内容子集 958.8 kB；完整字体 6.4 MB） |
+| 核对日期 | 2026-11-03 |
+| 核对方式 | 读取 GitHub 仓库 `LICENSE` 文件确认 SIL OFL 1.1 授权 |
+
+**已知限制**：
+- 具有算法做旧残墨与飞白质感。实测缺少极少数生僻字形（如 `埳`）与括号，遇到时自动回退。
+
+---
+
+## 十、韵草体 Rhyme Grass
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 韵草体 / Rhyme Grass |
+| 版本 | 1.000 |
+| 作者 | 黄令东（Lingdong Huang） |
+| 原始来源 | https://github.com/LingDong-/rhyme-grass-font |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://github.com/LingDong-/rhyme-grass-font/blob/main/OFL.txt |
+| 允许再分发 | ✅ 是 |
+| 本项目用途 | 晚明万历草书典籍法帖题签与展示（内容子集 605.0 kB；完整字体 4.1 MB） |
+| 核对日期 | 2026-11-03 |
+| 核对方式 | 读取 GitHub 仓库 `OFL.txt` 确认 SIL OFL 1.1 授权 |
+
+**已知限制**：
+- 源自晚明《草韵辨体》草书法帖，无现代标点与西文，现代简体和生僻词汇会有缺字回退，专用于短章题签与艺术展示。
+
+---
+
+## 十一、字体子集的维护约束
 
 ### 字符集是怎么来的
 
@@ -184,7 +311,7 @@ OFL.txt 同时列有 `Copyright 2020 The Klee Project Authors`。
 
 ---
 
-## 六、检查清单（新增字体时逐项确认）
+## 十二、检查清单（新增字体时逐项确认）
 
 - [ ] 已知字体名称、版本
 - [ ] 已知作者 / 版权方

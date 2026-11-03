@@ -52,10 +52,19 @@ describe('缺字检测', () => {
   })
 
   it('常用标点与拉丁不报缺字', () => {
-    for (const font of fonts.filter((f) => f.selfHosted)) {
+    // 现代通用字体应完整覆盖常用标点与拉丁字母；纯古籍善本与草书法帖复刻字体（如齐伋刻本、韵草体）源自明代古籍，不含西文字符
+    const modernFonts = fonts.filter(
+      (f) => f.selfHosted && f.id !== 'qiji-font' && f.id !== 'rhyme-grass',
+    )
+    for (const font of modernFonts) {
       const sample = '，。、；：？！「」『』（）《》—…·0123456789ZiZai'
       expect(countMissingInSubset(font.id, sample), font.id).toBe(0)
     }
+    // 古籍复刻字体明确记录 caveats 说明西文与现代标点自动回退
+    const qiji = getFont('qiji-font')
+    const rhyme = getFont('rhyme-grass')
+    expect(qiji.caveats?.some((c) => c.includes('西文') || c.includes('标点'))).toBe(true)
+    expect(rhyme.caveats?.some((c) => c.includes('草书') || c.includes('回退'))).toBe(true)
   })
 
   it('完整字体确实比内容子集覆盖更多字', () => {

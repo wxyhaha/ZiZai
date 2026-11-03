@@ -1,5 +1,12 @@
 [
   {
+    "id": "brand-serif",
+    "source": "汇文明朝体",
+    "kb": 93.0,
+    "chars": 230,
+    "missing": ""
+  },
+  {
     "id": "huawen-mingchao",
     "subsetKb": 576.9,
     "fullKb": 4199.1,
@@ -26,5 +33,47 @@
     "fullKb": 1271.3,
     "contentMissing": "",
     "fullMissing": ""
+  },
+  {
+    "id": "qiji-font",
+    "subsetKb": 916.6,
+    "fullKb": 6344.2,
+    "contentMissing": "!(),-./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]abcdefghijklmnopqrstuvwxyz·×–—‘’“”…→○〇〈〉《》「」『』【】〔〕〖〗！（），：；？［］｛｝～",
+    "fullMissing": "!(),-./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]abcdefghijklmnopqrstuvwxyz·×–—‘’“”…→○〇〈〉《》「」『』【】！（），：；？"
+  },
+  {
+    "id": "lxgw-zhisong",
+    "subsetKb": 182.1,
+    "fullKb": 1190.3,
+    "contentMissing": "",
+    "fullMissing": ""
+  },
+  {
+    "id": "genwan-mincho",
+    "subsetKb": 381.3,
+    "fullKb": 2624.9,
+    "contentMissing": "",
+    "fullMissing": ""
+  },
+  {
+    "id": "i-ming",
+    "subsetKb": 189.8,
+    "fullKb": 1183.6,
+    "contentMissing": "",
+    "fullMissing": ""
+  },
+  {
+    "id": "chill-huosong",
+    "subsetKb": 958.8,
+    "fullKb": 6384.7,
+    "contentMissing": "〖〗埳",
+    "fullMissing": ""
+  },
+  {
+    "id": "rhyme-grass",
+    "subsetKb": 605.0,
+    "fullKb": 4113.5,
+    "contentMissing": "!(),-./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]abcdefghijklmnopqrstuvwxyz·×–—‘’“”…→○、。〇〈〉《》「」『』【】〔〕〖〗为们候儿历发复尝尽录托扬汇站签绿舻苏袅证这鉴间阅页须！（），：；？［］｛｝～",
+    "fullMissing": "!(),-./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]abcdefghijklmnopqrstuvwxyz·×–—‘’“”…→○　、。〇〈〉《》「」『』【】丌丐专丢丨丫丬丶为丿乇么乒乓乜亓亠亻仑仫们佧俩候傻儿党冁冂冖冫凫凵凸凹凼刂刊刨剐劁劐勋勐勹勾匚匦卡卤卩卫厂历厍厘厣厶叁发另吊吖吗呆呖呙呛咂咔咝哌哒哔哗哚哝哟唛唠唢唣喱喽嗳嘱噗噜囗囝囟囡团囫囵坜垅垭垴埚堡塄墼夂复够夯夼套妈姘娴嫒嬷孓孢孪孬孵宀尕尜尝尥尬尴尽尿屁屉屙屣屮岔岖岗岙岜岢岽峁崂崃崮崴崽嵛巛巯帧庹廒廴廾弈弘弪彀彐录彳径忄忐忑怄怎恶恹恿您惫愣憨戗戤戥戳戽扌托扬拐拦挖挣捏捣掰掳掼揿搁搿摆摈撂撵撸擞攴攵敫旮旯昀朊杩枧枨枪柒柩桊桌档桤桦椤槟槠橱橼檩歪歹殓殴毪毽氆氇氍氕氖氘氙氚氟氡氢氦氧氨氩氪氮氯氰氵氽汆汇汽沥沪泵浈涞涠涧溻滗滚滠潆潴灬炝炼烃烨烩烫焖煮煲熨爷爸爿牮犟犭犸狰狲猕猡玛玮珲琏瑷甏甙甩甭电畲疒疔疖疤疬疯疰疱疳疴疸疼痂痃痄症痉痖痘痢痣痦痧痨痪痫痹瘊瘌瘕瘛瘟瘩瘪瘫瘭瘰瘾癀癌癍癔癖癜皈皴盔眍着睁睃矬砜砸硇硫硷碚碟磙磺礻票窨站笕签箍箐簌簖籼籽粑粘粞糌糨糸纟纤线绑绔绗绣绩绱绺绿缂缈缍缎缛缨缲缳罐罡罱羟羧羼耍耢耧耷聿肀肟肼肽胤胨胩胬脎脏脒脓脲脶腈腙腚腽舔舱舻艳艹芗苈苏荔荜荞荡荨荫荬荮莴莶获菩蓖蓥蕴蕻虍蚂蚋蚬蛋蛱蛲蜈螨螯螵蟥衤衲袅袈裢裣裰褡觑讠证诌诓诨诮说诶谂谎谔谘谣谵豇账资赆赊赔赚赝赞赶趔趱趸跞跺踅踌蹼蹿躏躜躲轱轵轷辁辆辊辶这逛逯遢邋邗邝邡邬邱郗釉鉴錾鎏鐾鑫钅钆钇针钋钍钎钐钒钔钕钙钚钛钟钠钡钥钨钩钪钫钬钭钰钴钵钶钷钸钼钽钾铀铂铆铈铊铌铐铑铒铕铖铘铝铞铟铡铥铪铬铯铱铲铳铵铷铹铼铽链锂锄锆锇锈锉锌锍锎锏锐锔锕锖锗锘锚锛锝锞锤锩锪锫锬锰锶锼锿镁镄镅镉镍镎镑镓镖镗镙镟镥镧镨镩镪镬镭镱镲镶闩闫闲间闸阃阄阅阌阝靛靠鞑鞒页顸须颃颚颞颟颥飑飕飚饣饥饺饽馄馅馇馊馍馐馕骒骟骣髌鬏魈魍鱿鲆鲇鲒鲚鲞鲡鲢鲣鲱鲳鲶鲷鲺鲻鲼鳃鳆鳇鳊鳋鳎鳓鳕鳗鳘鸫鸬鸵鸺鹁鹋鹌鹎鹚鹛鹧鹱麸黢鼾齄龅龇龌！（），：；？"
   }
 ]
