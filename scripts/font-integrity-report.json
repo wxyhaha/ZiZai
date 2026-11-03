@@ -535,6 +535,7 @@
     "name": "寒蝉活宋体",
     "sourceFile": "ChillHuoSong.otf",
     "src_cmap_count": 12152,
+    "invalid_uvs_removed": 117,
     "dst_cmap_count": 12152,
     "cmap_match": true,
     "src_glyph_count": 13154,
@@ -592,7 +593,7 @@
     "axes": [],
     "dropped_tables": [],
     "src_size": 30026220,
-    "dst_size": 11730792,
+    "dst_size": 11732844,
     "compression_ratio": "39.1%"
   },
   {

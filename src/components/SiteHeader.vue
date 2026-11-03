@@ -21,6 +21,7 @@ const activeKey = computed(() => (route.name === 'studio' ? 'studio' : 'home'))
       <span class="brand__seal" aria-hidden="true">印</span>
     </RouterLink>
 
+    <div v-if="activeKey === 'studio'" id="reading-controls" class="reading-controls" />
     <nav class="site-nav" aria-label="主导航">
       <RouterLink
         v-for="item in navItems"
@@ -51,6 +52,8 @@ const activeKey = computed(() => (route.name === 'studio' ? 'studio' : 'home'))
 
 <style scoped lang="scss">
 @use '@/styles/breakpoints' as bp;
+
+.reading-controls { min-width: 0; margin-inline: 24px; }
 
 .site-header {
   position: relative;

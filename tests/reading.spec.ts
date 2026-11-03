@@ -13,6 +13,8 @@ import { texts } from '@/data/texts'
 
 beforeEach(() => {
   useReadingState().resetToDefaults()
+  // 独立挂载阅读页时，提供真实应用 SiteHeader 中的顶部操作挂载点。
+  document.body.innerHTML = '<div id="reading-controls"></div>'
 })
 
 function makeRouter() {

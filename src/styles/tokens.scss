@@ -5,6 +5,16 @@
    ========================================================================== */
 
 :root {
+  /* ---- 轻拟物手卷：装裱、木轴与纸纤维 ---- */
+  --zz-scroll-mount: #c5bea3;
+  --zz-scroll-wood: #86745b;
+  --zz-scroll-wood-dark: #665743;
+  --zz-scroll-wood-light: #b9a487;
+  --zz-scroll-shadow: rgb(60 48 31 / 14%);
+  --zz-scroll-fold: rgb(75 56 30 / 10%);
+  --zz-scroll-fiber: rgb(99 79 46 / 2.2%);
+  --zz-scroll-highlight: rgb(255 255 255 / 55%);
+  --zz-scroll-cinnabar: #b83625;
   /* ---- 纸 ---- */
   --zz-paper: #f7f4ec;
   --zz-paper-deep: #efe8db;

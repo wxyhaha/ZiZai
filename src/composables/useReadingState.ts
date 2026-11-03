@@ -112,20 +112,21 @@ export function useReadingState() {
     }
   }
 
-  function setFont(fontId: string) {
+  function setFont(fontId: string, syncLayout = true) {
     state.value.fontId = fontId
     // 智能书体联动：若切换为草书（如《韵草体》），竖排时自动联动草书无栏规制以防切笔
     const targetFont = getFont(fontId)
     const smartScript = getScriptStyleByFont(fontId, targetFont.styleTag)
-    if (state.value.layout === 'vertical') {
+    if (syncLayout && state.value.layout === 'vertical') {
       state.value.scriptStyle = smartScript
     }
   }
 
-  function setText(textId: string) {
+  function setText(textId: string, syncLayout = true) {
     state.value.textId = textId
     // 选内置文稿时清掉自定义文字，避免「看起来选了古文却在显示自写内容」
     state.value.customText = null
+    if (!syncLayout) return
 
     // 核心朝代联动：切换文章时，自动推导该文章所属朝代的默认标点与时代装帧版框
     const targetText = getText(textId)

@@ -163,6 +163,28 @@ def save_cache(cache):
     CACHE_PATH.write_text(json.dumps(cache, indent=2, ensure_ascii=False), encoding='utf-8')
 
 
+def remove_invalid_variation_mappings(font):
+    """移除指向 .notdef 的无效 UVS，避免 Chromium OTS 拒收整款字体。
+
+    普通 cmap、有效变体、字形及排版表全部保留；不是字符子集裁剪。
+    """
+    removed = 0
+    for table in font['cmap'].tables[:]:
+        if table.format != 14:
+            continue
+        for selector, mappings in list(table.uvsDict.items()):
+            valid = [(cp, glyph) for cp, glyph in mappings
+                     if glyph is None or font.getGlyphID(glyph) != 0]
+            removed += len(mappings) - len(valid)
+            if valid:
+                table.uvsDict[selector] = valid
+            else:
+                del table.uvsDict[selector]
+        if not table.uvsDict:
+            font['cmap'].tables.remove(table)
+    return removed
+
+
 def convert_single_font_task(item):
     """转换单款字体到全量 WOFF2（顶层函数供进程池调用）。"""
     font_id = item['id']
@@ -211,6 +233,7 @@ def convert_single_font_task(item):
     src_sha = file_sha256(source_path)
     t0 = time.time()
     font = TTFont(str(source_path))
+    remove_invalid_variation_mappings(font)
     font.flavor = 'woff2'
     tmp_out = output_path.with_suffix('.tmp.woff2')
     font.save(str(tmp_out))
@@ -247,6 +270,7 @@ def audit_font_integrity(font_info):
     dst = TTFont(str(output_path), lazy=True)
 
     try:
+        invalid_uvs_removed = remove_invalid_variation_mappings(src)
         src_cmap = src.getBestCmap() or {}
         dst_cmap = dst.getBestCmap() or {}
         cmap_match = (src_cmap == dst_cmap)
@@ -296,6 +320,7 @@ def audit_font_integrity(font_info):
             'name': name,
             'sourceFile': source_file,
             'src_cmap_count': len(src_cmap),
+            'invalid_uvs_removed': invalid_uvs_removed,
             'dst_cmap_count': len(dst_cmap),
             'cmap_match': cmap_match,
             'src_glyph_count': len(src_glyphs),
@@ -555,6 +580,8 @@ def generate_integrity_markdown_report(audit_results):
         ])
 
         # 排版表审计
+        if item.get('invalid_uvs_removed'):
+            lines.append(f"- **浏览器兼容修复**：移除 {item['invalid_uvs_removed']} 条指向 `.notdef` 的无效 cmap format 14 变体映射；普通 cmap、有效变体及字形不变。")
         layout_tables = [k for k, v in item['layout_status'].items() if v['in_dst']]
         if layout_tables:
             lines.append(f"- **保留排版特性表**：`{'`, `'.join(layout_tables)}`")
