@@ -152,13 +152,13 @@ def _chars_from(globs, seed, exclude=()):
         if any(rel.startswith(prefix) for prefix in exclude):
             continue
         text = open(path, encoding='utf-8').read()
-        # 剥掉注释与样式/脚本块：注释里的中文不会渲染到页面上，
+        # 剥掉注释与样式块：注释和CSS里的中文不会作为正文或UI渲染，
         # 留着只会让子集白白变大。
+        # 注意：Vue SFC 的 <script> 内包含大量的 UI 文本、常量与提示语，绝对不能剥掉（ZZ-005）。
         text = re.sub(r'<!--.*?-->', '', text, flags=re.S)
         text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
         text = re.sub(r'//[^\n]*', '', text)
         text = re.sub(r'<style.*?</style>', '', text, flags=re.S)
-        text = re.sub(r'<script.*?</script>', '', text, flags=re.S)
         chars.update(CHAR_RE.findall(text))
     return {c for c in chars if not c.isspace()}
 

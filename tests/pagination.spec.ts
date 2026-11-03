@@ -105,4 +105,95 @@ describe('书页分页', () => {
     expect(widerLeading.length).toBeGreaterThan(defaultPages.length)
     expect(narrowerBlock.length).toBeGreaterThan(defaultPages.length)
   })
+
+  it('中文标点避头法则：句末标点不得单独出现在下一行行首', () => {
+    // 构造刚好在行末遇到逗号或句号的排版情景
+    // 行宽设定为刚好容纳 5 个全角字（首行缩进占 2 个字，即正文放 3 个字）
+    // 文字为「春风吹，又生。」
+    // 若无避头处理：「春风吹」在第 1 行，「，又生」在第 2 行（逗号落入第 2 行行首）
+    // 有避头处理后：第 1 行回退「吹」，变为「春风」，第 2 行变为「吹，又生。」
+    const article = input({
+      paragraphs: ['春风吹，又生。'],
+      fontSize: 10,
+      letterSpacing: 0,
+      contentWidth: 50, // 5个字宽 (首行缩进占 20px，行宽剩余 30px，刚好容纳 3 个字)
+      pageWidth: 200,
+      pageHeight: 300,
+      measureCharacter: () => 10,
+    })
+    const pages = paginateText(article)
+    const lines = pages[0].paragraphs[0].text.split('\n')
+    expect(lines.length).toBeGreaterThan(1)
+    // 每一行的首字符都绝不能是避头标点
+    const forbiddenStarts = ['，', '。', '！', '？', '；', '：', '）', '》', '”']
+    for (const line of lines) {
+      expect(forbiddenStarts.includes(line[0])).toBe(false)
+    }
+  })
+
+  it('中文标点避尾法则：前括号与前引号不得单独出现在行尾', () => {
+    // 构造「读《庄子》」情景，如果「《」刚好落在行尾，必须移至下一行行首
+    const article = input({
+      paragraphs: ['天之道《庄子》也。'],
+      fontSize: 10,
+      letterSpacing: 0,
+      contentWidth: 60, // 6个字宽 (缩进20px + 4个字) ->「天之道《」刚好5个字符触发折行
+      pageWidth: 200,
+      pageHeight: 300,
+      measureCharacter: () => 10,
+    })
+    const pages = paginateText(article)
+    const lines = pages[0].paragraphs[0].text.split('\n')
+    const forbiddenEnds = ['《', '（', '“', '「']
+    for (const line of lines) {
+      const lastChar = line[line.length - 1]
+      expect(forbiddenEnds.includes(lastChar)).toBe(false)
+    }
+  })
+
+  it('竖排禁则处理：列首无句末标点，列尾无前置标点', () => {
+    const article = input({
+      layout: 'vertical',
+      paragraphs: ['春风吹，又生。天之道《庄子》也。'],
+      fontSize: 12,
+      letterSpacing: 0,
+      pageHeight: 120, // 较矮视口，迫使频繁折列
+      pageWidth: 300,
+      measureCharacter: () => 12,
+    })
+    const pages = paginateText(article)
+    const bodyCols = pages.flatMap((p) => p.columns).filter((c) => c.kind === 'body')
+    const forbiddenStarts = ['，', '。', '！', '？', '；', '：', '）', '》', '”']
+    const forbiddenEnds = ['《', '（', '“', '「']
+    for (const col of bodyCols) {
+      if (col.text.length > 0) {
+        expect(forbiddenStarts.includes(col.text[0])).toBe(false)
+        expect(forbiddenEnds.includes(col.text[col.text.length - 1])).toBe(false)
+      }
+    }
+  })
+
+  it('动态标题高度估算：长标题比短标题占用更多首屏高度，并自适应扣减正文容量', () => {
+    const shortArticle = input({
+      title: '短诗',
+      author: '作者',
+      paragraphs: ['这是测试段落。'.repeat(10)],
+      pageHeight: 280,
+      contentWidth: 200,
+    })
+    const longArticle = input({
+      title: '这是一篇拥有极其冗长双行标题的古代文学长赋测试题目',
+      author: '作者',
+      paragraphs: ['这是测试段落。'.repeat(10)],
+      pageHeight: 280,
+      contentWidth: 200,
+    })
+    const shortPages = paginateText(shortArticle)
+    const longPages = paginateText(longArticle)
+
+    // 长标题占用了更多高度，导致第 1 页能容纳的正文行数减少，因而总页数增加或第 1 页段落文字变短
+    const shortPage1Lines = shortPages[0].paragraphs[0].text.split('\n').length
+    const longPage1Lines = longPages[0].paragraphs[0].text.split('\n').length
+    expect(longPage1Lines).toBeLessThan(shortPage1Lines)
+  })
 })

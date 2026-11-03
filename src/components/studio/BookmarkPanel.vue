@@ -18,6 +18,8 @@ const props = defineProps<{
   fonts: FontEntryWithAssets[]
   /** 当前搭配的描述，用于按钮文案 */
   currentLabel: string
+  /** 写入失败或存储异常时的提示 */
+  errorMessage?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -60,6 +62,10 @@ function formatDate(ts: number) {
       收藏当前搭配
       <span class="save__hint">{{ props.currentLabel }}</span>
     </button>
+
+    <p v-if="props.errorMessage" class="error-tip" role="alert">
+      {{ props.errorMessage }}
+    </p>
 
     <p v-if="empty" class="empty">笺册还是空的。调好一款搭配，再点上面那行字。</p>
 
@@ -127,6 +133,16 @@ function formatDate(ts: number) {
     letter-spacing: 0;
     color: var(--zz-muted);
   }
+}
+
+.error-tip {
+  margin: -12px 0 16px;
+  padding: 8px 12px;
+  font-size: var(--zz-text-xs);
+  color: #a83a32;
+  background: rgba(168, 58, 50, 0.08);
+  border-radius: var(--zz-radius-sm);
+  line-height: 1.5;
 }
 
 .empty {

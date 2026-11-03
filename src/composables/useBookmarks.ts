@@ -1,5 +1,7 @@
-import { computed, ref } from 'vue'
+import { computed, readonly, ref } from 'vue'
 import type { LayoutMode } from '@/types'
+import { fonts } from '@/data/fonts'
+import { texts } from '@/data/texts'
 
 /**
  * 本地收藏笺。
@@ -34,9 +36,38 @@ interface StoredShape {
   items: Bookmark[]
 }
 
+const lastError = ref<string | null>(null)
+
 /** 生成一个短 id；不追求全局唯一，本机够用即可 */
 function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function isFiniteNumberInRange(val: unknown, min: number, max: number): val is number {
+  return typeof val === 'number' && Number.isFinite(val) && val >= min && val <= max
+}
+
+/** 校验单个书签条目的完整性和数值合法性（防止 NaN、损坏字段与非法枚举注入） */
+function isValidBookmark(item: unknown): item is Bookmark {
+  if (typeof item !== 'object' || item === null) return false
+  const b = item as Record<string, unknown>
+
+  if (typeof b.id !== 'string' || b.id.trim().length === 0) return false
+  if (typeof b.title !== 'string') return false
+  if (typeof b.fontId !== 'string' || !fonts.some((f) => f.id === b.fontId)) return false
+
+  const hasValidTextId = b.textId === null || (typeof b.textId === 'string' && texts.some((t) => t.id === b.textId))
+  const hasValidCustomText = b.customText === null || typeof b.customText === 'string'
+  if (!hasValidTextId || !hasValidCustomText) return false
+
+  if (b.layout !== 'horizontal' && b.layout !== 'vertical') return false
+  if (!isFiniteNumberInRange(b.fontSize, 14, 40)) return false
+  if (!isFiniteNumberInRange(b.lineHeight, 1.4, 3.0)) return false
+  if (!isFiniteNumberInRange(b.letterSpacing, 0, 0.2)) return false
+  if (!isFiniteNumberInRange(b.contentWidth, 440, 960)) return false
+  if (typeof b.createdAt !== 'number' || !Number.isFinite(b.createdAt) || b.createdAt <= 0) return false
+
+  return true
 }
 
 /**
@@ -51,61 +82,65 @@ function read(): Bookmark[] {
     if (!raw) return []
     const parsed = JSON.parse(raw) as Partial<StoredShape>
     if (!parsed || parsed.version !== SCHEMA_VERSION || !Array.isArray(parsed.items)) return []
-    return parsed.items.filter(
-      (item): item is Bookmark =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof (item as Bookmark).id === 'string' &&
-        typeof (item as Bookmark).fontId === 'string',
-    )
+    return parsed.items.filter(isValidBookmark)
   } catch {
     return []
   }
 }
 
-function write(items: Bookmark[]) {
+function write(items: Bookmark[]): boolean {
   try {
-    if (typeof localStorage === 'undefined') return
+    if (typeof localStorage === 'undefined') {
+      lastError.value = '存储失败：当前运行环境不支持本地存储'
+      return false
+    }
     const payload: StoredShape = { version: SCHEMA_VERSION, items }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    lastError.value = null
+    return true
   } catch {
-    // 存储写满或被隐私模式禁用：静默失败，界面上的列表仍反映内存状态
+    lastError.value = '存储失败：浏览器存储空间已满或隐私模式禁用了本地写入'
+    return false
   }
 }
 
 const items = ref<Bookmark[]>(read())
 
+function isSameBookmark(a: Bookmark, b: Omit<Bookmark, 'id' | 'createdAt'>): boolean {
+  return (
+    a.fontId === b.fontId &&
+    a.textId === b.textId &&
+    a.customText === b.customText &&
+    a.layout === b.layout &&
+    a.fontSize === b.fontSize &&
+    Math.abs(a.lineHeight - b.lineHeight) < 0.001 &&
+    Math.abs(a.letterSpacing - b.letterSpacing) < 0.0001 &&
+    a.contentWidth === b.contentWidth
+  )
+}
+
 export function useBookmarks() {
   const count = computed(() => items.value.length)
 
   /**
-   * 同一套搭配只保留一条：先按「字体 + 文稿 + 版式 + 字号行距」
-   * 去重，再插入到最前面。
+   * 同一套搭配只保留一条：完整覆盖影响显示的全部参数（字体、文稿、自定义文本、版式、字号、行高、字距、版心）。
+   * 只要有一项参数不同，即视为不同搭配；完全相同时去重并置顶。
    */
-  function add(bookmark: Omit<Bookmark, 'id' | 'createdAt'>) {
-    const next = items.value.filter(
-      (b) =>
-        !(
-          b.fontId === bookmark.fontId &&
-          b.textId === bookmark.textId &&
-          b.customText === bookmark.customText &&
-          b.layout === bookmark.layout &&
-          b.fontSize === bookmark.fontSize
-        ),
-    )
+  function add(bookmark: Omit<Bookmark, 'id' | 'createdAt'>): boolean {
+    const next = items.value.filter((b) => !isSameBookmark(b, bookmark))
     next.unshift({ ...bookmark, id: makeId(), createdAt: Date.now() })
     items.value = next.slice(0, 60)
-    write(items.value)
+    return write(items.value)
   }
 
-  function remove(id: string) {
+  function remove(id: string): boolean {
     items.value = items.value.filter((b) => b.id !== id)
-    write(items.value)
+    return write(items.value)
   }
 
-  function clear() {
+  function clear(): boolean {
     items.value = []
-    write(items.value)
+    return write(items.value)
   }
 
   /** 重新读取存储 —— 用来支持「另一个标签页改了收藏」这种情况 */
@@ -116,6 +151,7 @@ export function useBookmarks() {
   return {
     items: computed(() => items.value),
     count,
+    lastError: readonly(lastError),
     add,
     remove,
     clear,

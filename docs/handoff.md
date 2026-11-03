@@ -3,11 +3,16 @@
 > 给下一位接手「字在 ZiZai」的开发者 / AI。
 > 先读这一份、`docs/issues.md` 与 `docs/implementation-plan.md`，再按讨论确定的范围继续开发。
 >
-> 最后更新：2026-11-02（赏字书页分页改版）
+> 最后更新：2026-11-03（核心阅读正确性、古籍标点禁则与端到端自动化重构）
 
-> 2026-11-02 状态补充：问题清单见 [issues.md](issues.md)。首页隐藏全局标题栏与导航，使用完整视口展示中央品牌标题与 CTA；赏字和 404 页面保留站点导航。落字从四款字体的独立随机字池取字，常用字占主、长尾字少量保留；每个落字节点每轮下落结束后更换为同字体支持的新字，同一位置会先轮完 1,200 字池再重新抽样。标准宽屏 PC 下 70 个字分配到 6–8 条字道，字号严格在 42–64px 内并逐字随机；宽度或高度受限时按安全容量减少节点。不同字道速度不同、轨迹范围隔开；左右列宽独立随机，每列字数、位置、漂移方向与下落疏密也随机变化，同时保留最小防重叠间距。后续开发与验收按用户要求只考虑 PC Web；手机和平板不是支持目标。完整字体要求已确认但转换尚未调整。落字子集不是完整字体，也不覆盖全量字体的长期要求。
+> 2026-11-03 状态补充：
+> 1. 核心阅读重构完成：建立 `pageTurnPlan.ts` 纯函数领域模型，规范横排 LTR 与古籍竖排 RTL（线装书右开本）的双页物理槽位映射（横排左1右2向右翻掀右，竖排右1左2向右翻掀左）；
+> 2. 中文避头尾禁则（Kinsoku Shori）完备实现，杜绝标点孤悬行首与列首；动态题头测量精确扣除空间，正文彻底免除截断风险；
+> 3. 3D 卷纸动效精简切片并解耦叶子节点透明度，阻断样式重算级联，稳定 60fps；
+> 4. 全站 14 份 WOFF2 字体资产完成合规性审计并建立自动化防护；六篇内置古文底本校勘详见 `docs/text-sources.md`；
+> 5. 引入 Playwright Chromium 真实浏览器端到端测试（`npm run test:e2e`），覆盖槽位映射、动效生命周期、竖排禁则与键盘作用域。
 
-> 赏字状态：短文显示单页，长文分页后以双页展开；字体、文稿、横竖排、字号、行高、字距、版心宽度和视口变化都会重新分页。六篇内置作品已登记公开来源并标注全文状态；字体、选集、版式、题写与收藏入口保留，对照功能按本轮要求删除。正文不再通过滚动阅读。
+> 赏字状态：短文显示单页，长文分页后以双页展开；字体、文稿、横竖排、字号、行高、字距、版心宽度和视口变化都会重新分页。六篇内置作品已登记权威底本校勘并标注全文状态；字体、选集、版式、题写与收藏入口保留，对照功能按规范删除。正文绝不使用滚动条。
 
 ---
 
@@ -33,16 +38,17 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-验证四联（提交前必须全绿）：
+验证五联（提交前必须全绿）：
 
 ```bash
 npm run typecheck    # 0 error
 npm run lint         # 0 error / 0 warning
-npm run test         # 以 docs/progress.md 本轮验证记录为准
-npm run build        # ✓ built
+npm run test         # 118 项单元/组件测试全绿 (以 docs/progress.md 为准)
+npm run test:e2e     # 5 项 Playwright Chromium 端到端真实浏览器测试全绿
+npm run build        # ✓ built (761ms 极速生产打包)
 ```
 
-提交前执行完整四联；开发过程中按改动范围先跑定向检查。
+提交前执行完整五联；开发过程中按改动范围先跑定向检查。
 
 > 只有重新生成字体资源时才需要 Python 3.10+ 与 `fonttools` / `brotli`；首页单独使用 `npm run fonts:home`。
 > 日常开发、构建、测试都不依赖 Python。
@@ -63,10 +69,14 @@ npm run build        # ✓ built
 | 「···」关于弹层 | `src/components/shell/MoreMenu.vue`（Reka UI Dialog） |
 | 阅读页布局与书页 | `src/views/ReadingView.vue` |
 | 书页展示、单页/双页与翻页 | `src/components/studio/BookViewer.vue` + `src/components/studio/ReadingSheet.vue` |
-| 横排/竖排分页计算 | `src/composables/usePagination.ts` |
+| 双页展开与翻页纯函数模型 | `src/composables/pageTurnPlan.ts`（确定性槽位映射与翻页生命周期） |
+| 柔性 3D 卷纸与 GPU 渲染 | `src/components/studio/CurvedPageTurn.vue` + `src/composables/pageTurnGeometry.ts` |
+| 横排/竖排分页与标点避头尾 | `src/composables/usePagination.ts`（Kinsoku Shori 算法与题头动态测量） |
+| 收藏笺参数比对与格式校验 | `src/composables/useBookmarks.ts`（ZZ-003/004 8 项参数比对与安全校验） |
 | 阅读状态（字体/文稿/版式/字号…） | `src/composables/useReadingState.ts` |
 | 字体目录与授权元信息 | `src/data/fonts.ts` + `docs/font-licenses.md` |
-| 古文内容 | `src/data/texts.ts` |
+| 古文内容与权威底本考据 | `src/data/texts.ts` + `docs/text-sources.md` |
+| 端到端真实浏览器自动化测试 | `e2e/reader.spec.ts` + `playwright.config.ts` |
 | 类型契约 | `src/types/{font,text,reading}.ts` |
 | 路由 | `src/router/index.ts` |
 | 字体 `@font-face` | `src/styles/fonts/*.scss`（**自动生成，勿手改**） |
@@ -154,18 +164,15 @@ npm run build        # ✓ built
 | B 设计系统 + 首页 | ✅ 首页已精简；随机落字使用四款真实字体专用子集 |
 | C 赏字核心 | ✅ 书页分页、字体切换 / 古文切换 / 横竖排 / 排版调整 / 题写 / 收藏 |
 | D 辅助功能 | ✅ 字体图鉴、选集、版式、题写与收藏；对照模式已按本轮范围删除 |
-| E 测试与优化 | 🟡 本轮测试结果见 `docs/progress.md`；浏览器视觉检查、E2E 与跨浏览器竖排待补 |
+| E 测试与优化 | ✅ 8 套件 118 项单元与组件测试全绿；Playwright 真实 Chromium E2E 全绿；全站 14 份 WOFF2 资产合规性自动化保障；样式重算与 Resize 节流完成 |
 
 ---
 
 ## 七、下一步建议（按优先级）
 
-先讨论并确定 `docs/issues.md` 中剩余缺陷与全量字体改造的执行顺序；以下扩展项保留为后续候选。
-
-1. **更多特色排版模板**（P2）：册页、题签、对联等传统版式布局。
-2. **Playwright E2E 测试**（P2）：覆盖选字体、换文章、切竖排、题写、缺字加载、收藏与恢复。
-3. **跨浏览器竖排与标点核验**（Firefox / Safari）。
-4. **屏幕阅读器无障碍试听**（NVDA / VoiceOver）。
+1. **更多特色古籍装帧模板**（P2）：册页、经折装、题签、对联等传统版式布局。
+2. **跨浏览器竖排与标点核验**（P2）：在 macOS Safari / WebKit 与 Linux/Windows Firefox 环境验证。
+3. **屏幕阅读器无障碍实机试听**（P2）：连接实机 NVDA / VoiceOver 听取 `aria-live` 页码播报。
 
 ---
 
@@ -176,28 +183,46 @@ npm run build        # ✓ built
 | 1 | **汇文明朝体的授权** | 经核实（CC0 1.0 + Public Domain），已设为全站主字体；现有名为 `full` 的文件仍是 GB2312 范围版本。 |
 | 2 | **自定义文字的缺字策略** | 采用「下载完整字体」策略，结合覆盖表在题写面板提供实时检测与一键按需加载。 |
 | 3 | **完整保留原字体** | 新要求已确认：全量 WOFF2 保留原字体全部字符、字形与原有排版/可变轴能力。现有 GB2312 版本尚未替换；首页展示子集与全量转换分离。 |
-
-| # | 尚待讨论的事项 | 影响 |
-|---|---|---|
-| 1 | 全量字体转换实现及完整性核验 | 保留字符、字形、排版表与可变轴 |
-| 2 | 问题修复顺序及关键行为测试 | 优先修实际用户操作结果，避免重复全套验收 |
-| 3 | 是否引入小规模 Playwright 检查 | 用关键路径自动验证替代对应手工回归 |
+| 4 | **纯函数 `PageTurnPlan` 模型** | 槽位与翻页逻辑解耦（ADR-017），左右物理槽位与横竖排流向确定性绑定。 |
+| 5 | **中文避头尾（Kinsoku Shori）** | 回溯分行算法杜绝标点孤悬（ADR-018），动态题头高度防截断。 |
+| 6 | **3D 卷纸 GPU 合成与样式解耦** | 精简至 20 切片条带，叶子节点管理透明度并关闭背光面渲染（ADR-019）。 |
 
 ---
 
-## 九、文件清单（第 1 轮产出）
+## 九、文件清单（当前版本产出）
 
 ```
 zizai/
 ├── README.md                       ← 项目说明与命令
+├── playwright.config.ts            ← Playwright E2E 测试配置
+├── e2e/
+│   └── reader.spec.ts              ← 核心端到端流程与真实排版测试
 ├── docs/
 │   ├── implementation-plan.md      ← 阶段计划与任务状态
-│   ├── decisions.md                ← 架构决策记录（ADR）
+│   ├── decisions.md                ← 架构决策记录（ADR-001 ~ ADR-019）
 │   ├── progress.md                 ← 分轮记录与验证结果
 │   ├── design-system.md            ← 落地版设计规范
 │   ├── font-licenses.md            ← 字体授权（含未核实项的处理方式）
-│   ├── handoff.md                  ← 本文件
+│   ├── issues.md                   ← 问题清单与修复状态
+│   ├── text-sources.md             ← 六篇古文权威底本考据与校勘记录
+│   ├── handoff.md                  ← 本交接说明
 │   └── design-reference/           ← 用户原始设计资料（只读，勿改）
+├── scripts/
+│   ├── build-font-subsets.py       ← 正文与品牌子集生成（修复 ZZ-005）
+│   ├── build-home-glyph-fonts.py   ← 首页真实 cmap 随机落字子集生成
+│   └── font-subset-report.json     ← 字体字符覆盖与缺字报告
+├── src/
+│   ├── composables/
+│   │   ├── pageTurnPlan.ts         ← 双页展开与翻页纯函数领域模型
+│   │   ├── pageTurnGeometry.ts     ← 卷纸 3D 几何投影矩阵计算
+│   │   ├── usePagination.ts        ← 中文标点避头尾与分页分列算法
+│   │   ├── useBookmarks.ts         ← 收藏笺 8 项参数对比与安全校验
+│   │   └── ...
+│   └── components/studio/
+│       ├── BookViewer.vue          ← 书本展示容器、Resize 节流与槽位绑定
+│       ├── CurvedPageTurn.vue      ← 柔性 3D 卷纸翻页叶子节点优化
+│       └── ...
+```
 ├── scripts/
 │   ├── build-font-subsets.py
 │   ├── build-home-glyph-fonts.py

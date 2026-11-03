@@ -36,7 +36,7 @@ const {
   setContentWidth,
 } = useReadingState()
 
-const { items: bookmarks, count: bookmarkCount, add, remove } = useBookmarks()
+const { items: bookmarks, count: bookmarkCount, add, remove, lastError } = useBookmarks()
 const activePanel = ref<StudioTool | null>(null)
 
 function openPanel(tool: StudioTool) {
@@ -111,6 +111,7 @@ const currentLabel = computed(() => {
           :letter-spacing="state.letterSpacing"
           :content-width="state.contentWidth"
           :is-custom="isCustom"
+          :has-active-modal="activePanel !== null"
         />
 
         <aside class="rail">
@@ -166,6 +167,7 @@ const currentLabel = computed(() => {
       :bookmarks="bookmarks"
       :fonts="fonts"
       :current-label="currentLabel"
+      :error-message="lastError"
       @update:open="(v) => (activePanel = v ? 'bookmarks' : null)"
       @save="saveCurrent"
       @restore="restore"

@@ -42,7 +42,35 @@ const HORIZONTAL_INLINE_PADDING = 112
 const HORIZONTAL_BLOCK_PADDING = 92
 const VERTICAL_INLINE_PADDING = 104
 const VERTICAL_BLOCK_PADDING = 86
-const TITLE_BLOCK_HEIGHT = 116
+
+/**
+ * 中文排版禁则规则集合（参考 GB/T 15834-2011 标点符号用法与 W3C 中文排版需求 clreq）。
+ * 避头标点：不可出现在行首或列首（句末点号、右括注号、后引号等）。
+ */
+export const LINE_START_FORBIDDEN = new Set([
+  '，', '。', '、', '；', '：', '！', '？',
+  '）', '》', '」', '』', '】', '〕', '〗', '］', '｝', '”', '’',
+  '︶', '︷', '︸', '︹', '︺', '︼', '︽', '︾', '﹁', '﹂', '﹃', '﹄', '﹚', '﹛', '﹞',
+  '!', '%', ')', ',', '.', ':', ';', '?', ']', '}', '"', "'",
+  '·', '…', '—', '～', '¢', '°', '℃'
+])
+
+/**
+ * 避尾标点：不可出现在行尾或列尾（前引号、左括注号、货币符号等）。
+ */
+export const LINE_END_FORBIDDEN = new Set([
+  '（', '《', '「', '『', '【', '〔', '〖', '［', '｛', '“', '‘',
+  '︵', '︷', '︹', '︻', '︽', '﹁', '﹃', '﹙', '﹜', '﹝',
+  '(', '[', '{', '<', '$', '£', '¥'
+])
+
+export function shouldNotStartLine(char: string): boolean {
+  return LINE_START_FORBIDDEN.has(char)
+}
+
+export function shouldNotEndLine(char: string): boolean {
+  return LINE_END_FORBIDDEN.has(char)
+}
 
 function createPage(index: number): BookPage {
   return { index, hasHeader: index === 0, paragraphs: [], columns: [] }
@@ -57,27 +85,95 @@ function measure(input: PaginationInput, character: string, size = input.fontSiz
   return Math.max(0.01, measured ?? size)
 }
 
-function wrapHorizontal(text: string, input: PaginationInput, width: number): string[] {
+/**
+ * 动态估算首屏标题区占据的总高度：
+ * 包含：标题行高（可能因过长而自动换行）、副标题（朝代+作者）行高、标题与副标题间距 (10px) 以及底部下外边距 (36px)。
+ */
+export function estimateTitleBlockHeight(input: PaginationInput, width: number): number {
+  const safeWidth = Math.max(input.fontSize, width)
+  // 标题字体 32px，行高 1.5 (48px)，字距 0.04em
+  const titleTracking = 0.04 * 32
+  let titleLines = 1
+  let currentTitleWidth = 0
+  for (const ch of characters(input.title)) {
+    const adv = measure(input, ch, 32) + titleTracking
+    if (currentTitleWidth > 0 && currentTitleWidth + adv > safeWidth) {
+      titleLines++
+      currentTitleWidth = adv
+    } else {
+      currentTitleWidth += adv
+    }
+  }
+  const titleHeight = titleLines * 32 * 1.5
+
+  const metadata = [input.era, input.author].filter(Boolean).join(' · ')
+  let metaHeight = 0
+  if (metadata.trim()) {
+    // 副标题字体 var(--zz-text-sm) 即 13px，行高 1.6 (20.8px)，字距 0.18em，上间距 10px
+    const metaTracking = 0.18 * 13
+    let metaLines = 1
+    let currentMetaWidth = 0
+    for (const ch of characters(metadata)) {
+      const adv = measure(input, ch, 13) + metaTracking
+      if (currentMetaWidth > 0 && currentMetaWidth + adv > safeWidth) {
+        metaLines++
+        currentMetaWidth = adv
+      } else {
+        currentMetaWidth += adv
+      }
+    }
+    metaHeight = 10 + metaLines * 13 * 1.6
+  }
+
+  // 底部留白 margin-bottom: 36px
+  const headMarginBottom = 36
+  return Math.round(titleHeight + metaHeight + headMarginBottom)
+}
+
+export function wrapHorizontal(text: string, input: PaginationInput, width: number): string[] {
   const chars = characters(text)
   if (chars.length === 0) return ['']
 
   const tracking = input.letterSpacing * input.fontSize
   const lines: string[] = []
-  let line = ''
-  let used = 2 * input.fontSize
+  let currentChars: string[] = []
+  let currentWidth = 2 * input.fontSize // 原段落首行缩进 2em
 
-  for (const character of chars) {
+  for (let i = 0; i < chars.length; i++) {
+    const character = chars[i]
     const advance = measure(input, character) + tracking
-    if (line && used + advance > width) {
-      lines.push(line)
-      line = ''
-      used = 0
+
+    if (currentChars.length > 0 && currentWidth + advance > width) {
+      let breakIndex = currentChars.length
+
+      // 避头处理：如果即将换行的字符是行首禁则标点，回退当前行末尾字符一起移至下一行
+      if (shouldNotStartLine(character)) {
+        while (breakIndex > 1 && (shouldNotStartLine(currentChars[breakIndex - 1]) || breakIndex === currentChars.length)) {
+          breakIndex--
+        }
+      }
+
+      // 避尾处理：如果分界处的上一个字符是行尾禁则标点，将其移至下一行
+      while (breakIndex > 1 && shouldNotEndLine(currentChars[breakIndex - 1])) {
+        breakIndex--
+      }
+
+      const lineStr = currentChars.slice(0, breakIndex).join('')
+      const carryOver = currentChars.slice(breakIndex)
+
+      lines.push(lineStr)
+      currentChars = [...carryOver, character]
+      currentWidth = currentChars.reduce((sum, ch) => sum + measure(input, ch) + tracking, 0)
+    } else {
+      currentChars.push(character)
+      currentWidth += advance
     }
-    line += character
-    used += advance
   }
 
-  if (line) lines.push(line)
+  if (currentChars.length > 0) {
+    lines.push(currentChars.join(''))
+  }
+
   return lines
 }
 
@@ -90,6 +186,7 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
   )
   const lineHeight = input.fontSize * input.lineHeight
   const bodyHeight = Math.max(lineHeight, pageHeight - HORIZONTAL_BLOCK_PADDING)
+  const titleBlockHeight = estimateTitleBlockHeight(input, textWidth)
   const pages = [createPage(0)]
   let usedHeight = 0
   let hasPreviousParagraph = false
@@ -101,7 +198,7 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
       let page = pages[pages.length - 1]
       const firstLine = lineIndex === 0
       let paragraphGap = firstLine && hasPreviousParagraph ? input.fontSize * 1.1 : 0
-      let capacity = Math.max(lineHeight, bodyHeight - (page.hasHeader ? TITLE_BLOCK_HEIGHT : 0))
+      let capacity = Math.max(lineHeight, bodyHeight - (page.hasHeader ? titleBlockHeight : 0))
 
       if (usedHeight + paragraphGap + lineHeight > capacity && page.paragraphs.length > 0) {
         page = createPage(pages.length)
@@ -111,7 +208,7 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
         capacity = bodyHeight
       }
 
-      // Extremely short windows still show at least one complete line.
+      // 极窄或矮视口下仍保留至少一行完整显示
       usedHeight = Math.min(capacity, usedHeight + paragraphGap + lineHeight)
       const paragraphEnd = lineIndex === lines.length - 1
       const previous = page.paragraphs[page.paragraphs.length - 1]
@@ -135,7 +232,7 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
   return pages
 }
 
-function splitVertical(
+export function splitVertical(
   text: string,
   input: PaginationInput,
   fontSize = input.fontSize,
@@ -146,22 +243,46 @@ function splitVertical(
     input.pageHeight - VERTICAL_BLOCK_PADDING,
   )
   const tracking = trackingEm * fontSize
-  const columns: string[] = []
-  let column = ''
-  let usedHeight = 0
+  const chars = characters(text)
+  if (chars.length === 0) return ['']
 
-  for (const character of characters(text)) {
+  const columns: string[] = []
+  let currentChars: string[] = []
+  let currentHeight = 0
+
+  for (let i = 0; i < chars.length; i++) {
+    const character = chars[i]
     const advance = measure(input, character, fontSize) + tracking
-    if (column && usedHeight + advance > availableHeight) {
-      columns.push(column)
-      column = ''
-      usedHeight = 0
+
+    if (currentChars.length > 0 && currentHeight + advance > availableHeight) {
+      let breakIndex = currentChars.length
+
+      // 列首禁则处理：句末标点不得单独出现在列首
+      if (shouldNotStartLine(character)) {
+        while (breakIndex > 1 && (shouldNotStartLine(currentChars[breakIndex - 1]) || breakIndex === currentChars.length)) {
+          breakIndex--
+        }
+      }
+
+      // 列尾禁则处理：前置括号、前引号等不得单独出现在列尾
+      while (breakIndex > 1 && shouldNotEndLine(currentChars[breakIndex - 1])) {
+        breakIndex--
+      }
+
+      columns.push(currentChars.slice(0, breakIndex).join(''))
+      const carryOver = currentChars.slice(breakIndex)
+      currentChars = [...carryOver, character]
+      currentHeight = currentChars.reduce((sum, ch) => sum + measure(input, ch, fontSize) + tracking, 0)
+    } else {
+      currentChars.push(character)
+      currentHeight += advance
     }
-    column += character
-    usedHeight += advance
   }
 
-  if (column) columns.push(column)
+  if (currentChars.length > 0) {
+    columns.push(currentChars.join(''))
+  }
+
   return columns
 }
 

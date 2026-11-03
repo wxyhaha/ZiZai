@@ -147,6 +147,41 @@ describe('赏字书页', () => {
     expect(document.body.querySelector('[role="dialog"] .panel__title')?.textContent).toContain('文选')
     wrapper.unmount()
   })
+
+  it('键盘快捷键支持左右方向翻页，并受弹窗与修饰键严格作用域约束', async () => {
+    const wrapper = await mountStudio()
+    expect(wrapper.get('.sheet').attributes('data-page')).toBe('1')
+
+    // 1. 带修饰键 (Ctrl / Alt / Shift) 时不触发翻页
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', ctrlKey: true }))
+    await nextTick()
+    expect(wrapper.findComponent(CurvedPageTurn).exists()).toBe(false)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true }))
+    await nextTick()
+    expect(wrapper.findComponent(CurvedPageTurn).exists()).toBe(false)
+
+    // 2. 正常按下 ArrowRight：触发前翻动效
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+    await nextTick()
+    expect(wrapper.findComponent(CurvedPageTurn).exists()).toBe(true)
+    wrapper.findComponent(CurvedPageTurn).vm.$emit('finish')
+    await nextTick()
+    expect(wrapper.get('.sheet').attributes('data-page')).not.toBe('1')
+
+    // 3. 打开面板时（如文选面板打开），按下 ArrowLeft / ArrowRight 不触发翻页
+    await wrapper.findAll('.tools__btn')[1].trigger('click')
+    await nextTick()
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+
+    const pageBefore = wrapper.get('.sheet').attributes('data-page')
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))
+    await nextTick()
+    expect(wrapper.findComponent(CurvedPageTurn).exists()).toBe(false)
+    expect(wrapper.get('.sheet').attributes('data-page')).toBe(pageBefore)
+
+    wrapper.unmount()
+  })
 })
 
 describe('阅读状态', () => {

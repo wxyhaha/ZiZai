@@ -3,24 +3,37 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { LayoutMode } from '@/types'
 import { paginateText, type BookPage } from '@/composables/usePagination'
+import {
+  buildPageTurnPlan,
+  type PageTurnTransition,
+  type TurnDirection,
+} from '@/composables/pageTurnPlan'
 import ReadingSheet from './ReadingSheet.vue'
 import CurvedPageTurn from './CurvedPageTurn.vue'
 import { TURN_CLEARANCE } from '@/composables/pageTurnGeometry'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 
-const props = defineProps<{
-  title: string
-  author: string
-  era?: string
-  paragraphs: string[]
-  fontFamily: string
-  layout: LayoutMode
-  fontSize: number
-  lineHeight: number
-  letterSpacing: number
-  contentWidth: number
-  isCustom?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    title: string
+    author: string
+    era?: string
+    paragraphs: string[]
+    fontFamily: string
+    layout: LayoutMode
+    fontSize: number
+    lineHeight: number
+    letterSpacing: number
+    contentWidth: number
+    isCustom?: boolean
+    hasActiveModal?: boolean
+  }>(),
+  {
+    era: undefined,
+    isCustom: false,
+    hasActiveModal: false,
+  },
+)
 
 const stage = ref<HTMLElement | null>(null)
 const size = ref({ width: 1180, height: 700 })
@@ -30,33 +43,42 @@ const spreadStart = ref(0)
 let observer: ResizeObserver | undefined
 let generation = 0
 const reducedMotion = useReducedMotion()
-const turn = ref<{ front?: BookPage; back?: BookPage; fromRight: boolean; target: number; forward: boolean } | null>(null)
+const turn = ref<PageTurnTransition | null>(null)
 const sheetProps = computed(() => ({ ...props, single: false }))
+
 function finishTurn() {
-  if (turn.value) spreadStart.value = turn.value.target
+  if (turn.value) spreadStart.value = turn.value.targetSpreadStart
   turn.value = null
 }
-watch(reducedMotion, (reduced) => { if (reduced) finishTurn() })
-
-const visiblePages = computed(() => {
-  if (singlePage.value) return [pages.value[0]]
-  if (turn.value) {
-    return turn.value.forward
-      ? [pages.value[spreadStart.value], pages.value[turn.value.target + 1]]
-      : [pages.value[turn.value.target], pages.value[spreadStart.value + 1]]
-  }
-  return [pages.value[spreadStart.value], pages.value[spreadStart.value + 1]]
+watch(reducedMotion, (reduced) => {
+  if (reduced) finishTurn()
 })
 
-const pageStatus = computed(() => {
-  if (pages.value.length <= 1) return '1 / 1 页'
-  const first = spreadStart.value + 1
-  const last = Math.min(spreadStart.value + 2, pages.value.length)
-  return `${first}–${last} / ${pages.value.length} 页`
+const turnPlan = computed(() =>
+  buildPageTurnPlan({
+    pages: pages.value,
+    spreadStart: spreadStart.value,
+    layout: props.layout,
+    singlePage: singlePage.value,
+  }),
+)
+
+const singleSlotPage = computed(() => {
+  if (turn.value) return turn.value.underlyingLeft
+  return turnPlan.value.currentSpread.leftPage
 })
 
-const canGoBack = computed(() => spreadStart.value > 0)
-const canGoForward = computed(() => spreadStart.value + 2 < pages.value.length)
+const leftSlotPage = computed(() => {
+  if (turn.value) return turn.value.underlyingLeft
+  return turnPlan.value.currentSpread.leftPage
+})
+
+const rightSlotPage = computed(() => {
+  if (turn.value) return turn.value.underlyingRight
+  return turnPlan.value.currentSpread.rightPage
+})
+
+const pageStatus = computed(() => turnPlan.value.pageStatus)
 
 function canvasMeasurer() {
   const canvas = document.createElement('canvas')
@@ -151,7 +173,23 @@ async function paginate(resetToFirstPage: boolean) {
   resolvePages(canvasMeasurer())
 }
 
+let resizeRaf: number | null = null
+
 function updateSize() {
+  if (!stage.value) return
+  if (resizeRaf !== null) return
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = null
+    if (!stage.value) return
+    const rect = stage.value.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
+    if (size.value.width === rect.width && size.value.height === rect.height) return
+    size.value = { width: rect.width, height: rect.height }
+    void paginate(false)
+  })
+}
+
+function updateSizeImmediate() {
   if (!stage.value) return
   const rect = stage.value.getBoundingClientRect()
   if (rect.width <= 0 || rect.height <= 0) return
@@ -160,43 +198,40 @@ function updateSize() {
   void paginate(false)
 }
 
-function moveSpread(forward: boolean) {
-  if (turn.value || (forward ? !canGoForward.value : !canGoBack.value)) return
-  const oldStart = spreadStart.value
-  const target = oldStart + (forward ? 2 : -2)
+function moveSpread(direction: TurnDirection) {
+  if (turn.value) return
+  const transition = turnPlan.value.createTransition(direction)
+  if (!transition) return
+
   if (!reducedMotion.value) {
-    turn.value = {
-      front: pages.value[oldStart + (forward ? 1 : 0)],
-      back: pages.value[target + (forward ? 0 : 1)],
-      fromRight: forward !== (props.layout === 'vertical'),
-      target,
-      forward,
-    }
+    turn.value = transition
   } else {
-    spreadStart.value = target
+    spreadStart.value = transition.targetSpreadStart
   }
 }
-function previousSpread() { moveSpread(false) }
-function nextSpread() { moveSpread(true) }
+function previousSpread() {
+  moveSpread('backward')
+}
+function nextSpread() {
+  moveSpread('forward')
+}
 
-const isVertical = computed(() => props.layout === 'vertical')
-
-const leftAriaLabel = computed(() => (isVertical.value ? '下一组页面' : '上一组页面'))
-const rightAriaLabel = computed(() => (isVertical.value ? '上一组页面' : '下一组页面'))
+const leftAriaLabel = computed(() => turnPlan.value.leftAriaLabel)
+const rightAriaLabel = computed(() => turnPlan.value.rightAriaLabel)
 
 const leftDisabled = computed(() => {
   if (turn.value) return true
-  return isVertical.value ? !canGoForward.value : !canGoBack.value
+  return turnPlan.value.leftDisabled
 })
 
 const rightDisabled = computed(() => {
   if (turn.value) return true
-  return isVertical.value ? !canGoBack.value : !canGoForward.value
+  return turnPlan.value.rightDisabled
 })
 
 function onLeftClick() {
   if (leftDisabled.value) return
-  if (isVertical.value) {
+  if (props.layout === 'vertical') {
     nextSpread()
   } else {
     previousSpread()
@@ -205,7 +240,7 @@ function onLeftClick() {
 
 function onRightClick() {
   if (rightDisabled.value) return
-  if (isVertical.value) {
+  if (props.layout === 'vertical') {
     previousSpread()
   } else {
     nextSpread()
@@ -213,9 +248,24 @@ function onRightClick() {
 }
 
 function onKeyDown(event: KeyboardEvent) {
-  if (event.target instanceof HTMLElement && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA')) {
+  if (props.hasActiveModal) return
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+  if (event.target instanceof HTMLElement) {
+    if (
+      event.target.tagName === 'INPUT' ||
+      event.target.tagName === 'TEXTAREA' ||
+      event.target.tagName === 'SELECT' ||
+      event.target.isContentEditable ||
+      event.target.closest('[role="dialog"]') !== null ||
+      event.target.closest('[role="slider"]') !== null
+    ) {
+      return
+    }
+  }
+  if (typeof document !== 'undefined' && document.querySelector('[role="dialog"]') !== null) {
     return
   }
+
   if (event.key === 'ArrowLeft') {
     onLeftClick()
   } else if (event.key === 'ArrowRight') {
@@ -241,7 +291,7 @@ watch(
 )
 
 onMounted(() => {
-  updateSize()
+  updateSizeImmediate()
   if (stage.value && typeof ResizeObserver !== 'undefined') {
     observer = new ResizeObserver(updateSize)
     observer.observe(stage.value)
@@ -253,6 +303,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   generation += 1
   finishTurn()
+  if (resizeRaf !== null) {
+    cancelAnimationFrame(resizeRaf)
+    resizeRaf = null
+  }
   observer?.disconnect()
   window.removeEventListener('resize', updateSize)
   window.removeEventListener('keydown', onKeyDown)
@@ -272,20 +326,40 @@ onBeforeUnmount(() => {
         :data-page-count="pages.length"
         :data-page-mode="singlePage ? 'single' : 'spread'"
       >
-        <template v-for="(page, slot) in visiblePages" :key="slot">
+        <template v-if="singlePage">
           <ReadingSheet
-            v-if="page"
+            v-if="singleSlotPage"
             v-bind="sheetProps"
-            :page="page"
-            :page-position="slot === 0 ? 'first' : 'second'"
-            :single="singlePage"
+            :page="singleSlotPage"
+            page-position="first"
+            :single="true"
+          />
+        </template>
+        <template v-else>
+          <!-- 左侧物理槽位（横排为先读页，竖排为后读页） -->
+          <ReadingSheet
+            v-if="leftSlotPage"
+            v-bind="sheetProps"
+            :page="leftSlotPage"
+            page-position="first"
+            :single="false"
+          />
+          <div v-else class="book-blank" aria-hidden="true" />
+
+          <!-- 右侧物理槽位（横排为后读页，竖排为先读页） -->
+          <ReadingSheet
+            v-if="rightSlotPage"
+            v-bind="sheetProps"
+            :page="rightSlotPage"
+            page-position="second"
+            :single="false"
           />
           <div v-else class="book-blank" aria-hidden="true" />
         </template>
         <CurvedPageTurn
           v-if="turn"
-          :front="turn.front"
-          :back="turn.back"
+          :front="turn.frontPage"
+          :back="turn.backPage"
           :from-right="turn.fromRight"
           :sheet-props="sheetProps"
           @finish="finishTurn"
@@ -392,7 +466,7 @@ onBeforeUnmount(() => {
   }
 
   &--vertical {
-    flex-direction: row-reverse;
+    // 左右槽位已由 PageTurnPlan 显式绑定，无需依赖 flex-direction: row-reverse
   }
 }
 

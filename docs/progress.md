@@ -7,6 +7,48 @@
 
 ---
 
+## 2026-11-03 · 核心阅读正确性、古籍标点禁则与端到端自动化重构
+
+### 改动内容
+
+1. **核心阅读逻辑重构与领域模型解耦（Phase 1）**
+   - 抽象纯函数领域模型 `src/composables/pageTurnPlan.ts`：将双页展开（Spread）中的页面分配与状态流转解耦。确定现代横排（LTR）与传统古籍竖排（RTL 线装书）的物理槽位映射：横排左1右2，向右翻页从右掀起；竖排右1（先读）左2（后读），向右翻页向后阅读从左掀起。奇数总页数时末尾安全留白 `book-blank`。
+   - 中文避头尾禁则（Kinsoku Shori）：遵循 GB/T 15834-2011 与 W3C clreq，在 `src/composables/usePagination.ts` 实现回溯切分重排算法，杜绝句末点号孤悬行首/列首，前置符号孤悬行末/列尾。
+   - 动态题头几何测量：标题多行排布高度 + 作者元数据 + 间距精确从第一页正文可用高度/列宽中扣除，彻底解决 `overflow: hidden` 截断正文文字隐患。
+   - 弹窗与快捷键作用域约束：弹窗激活、输入框聚焦、滚动条或附带修饰键（Ctrl/Alt/Shift/Meta）时阻止键盘箭头翻页，防止跨层误触。
+   - 收藏笺修复：`areBookmarksEqual` 比较全套 8 项排版参数（ZZ-003）；新增 `validateBookmarkItem` 严格校验本地存储，杜绝 `NaN` / `Infinity` / 非法字号损坏数据（ZZ-004）。
+
+2. **字体资产与文选底本考据（Phase 2）**
+   - 修复 `scripts/build-font-subsets.py`（ZZ-005）：保留 Vue `<script>` 内的中文常量提取，字符集从 1,047 扩充至 1,072，消除界面漏字隐患。
+   - 字体资产 WOFF2 完整性审计：依 ADR-015 验证磁盘全部 14 份 WOFF2 资产（包括品牌、落字、阅读及 GB2312 完整字体），魔数与 cmap 100% 合规。
+   - 权威底本校勘：撰写 `docs/text-sources.md`，对站内 6 篇经典文选进行底本对校（四部丛刊本《震川先生集》、四部丛刊本《东坡全集》、百衲本《文苑英华》、伯希和敦煌写卷 P.2544《陋室铭》等），详细记录异文考辨与缺字覆盖。
+
+3. **渲染性能优化与端到端自动化（Phase 3）**
+   - 优化 `CurvedPageTurn.vue` 3D 卷纸渲染：切片条带数由 28 精简为 20；移除根节点 CSS 变量写入，引入 `.paper-shade` 叶子节点直接管理透明度，结合背光面 `display: none` 彻底阻断 56 个子树的逐帧样式重算级联，稳定 60fps。
+   - `BookViewer.vue` 窗口尺寸响应防抖：通过 `requestAnimationFrame` 节流 Resize 重排，并于 `onMounted` 立即触发 `updateSizeImmediate` 消除首屏闪烁。
+   - 建立 Playwright E2E 真实浏览器自动化测试套件（`playwright.config.ts`、`e2e/reader.spec.ts`），覆盖 5 大核心端到端流程。
+
+### 实际执行的验证命令与结果
+
+- `npm run test`：8 个测试套件，118 项 Vitest 单元与组件测试全部通过（耗时 1.35s）。
+- `npm run test:e2e`：5 项 Playwright Chromium 端到端真实浏览器测试全部通过（耗时 8.3s）。
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run build`：生产环境打包成功，构建耗时 761ms。
+
+### 发现的问题与解决
+
+- 修复 `tests/data.spec.ts` 字体资源测试中的相对路径与 URL 匹配问题。
+- 修复 Playwright 在翻页切片时的 `.sheet--first` 严格模式定位歧义，收紧为直接子选择器 `.book-spread > .sheet--first`。
+- 修复 `tests/compare-bookmarks.spec.ts` 中缺失的 `vi` 导入和 `BookViewer.vue` 的未使用变量及 prop 默认值。
+
+### 未验证项 / 边界
+
+- 移动端触控滑动手势（根据产品定位，专注 PC Web 体验，手机仅保留基础兼容）。
+- 屏幕阅读器实机语音朗读声调（已通过 `aria-label` 与 `zz-sr-only` 提供了标准的无障碍文本结构并通过自动化断言，未连接实机 NVDA/VoiceOver 进行听觉复核）。
+
+---
+
 ## 2026-11-02 · 提升书本垂直高度与两侧空白区域点击翻页
 
 - 释放书本垂直高度：将底部页码导航栏从常规流移出改为绝对定位悬浮，不挤占舞台高度；将 `TURN_CLEARANCE` 安全空间从 40px 收紧至 14px，并将翻页透视最大抬升限制在 10px 内，防止翻页时出现顶部切割或冲撞标题栏，同时为书页净增约 90px 的显示高度。

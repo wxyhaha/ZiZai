@@ -47,6 +47,25 @@ describe('字体目录', () => {
     }
   })
 
+  it('所有分发的字体资源均为标准的 WOFF2 格式且包含有效资产', () => {
+    const allWoff2 = Object.keys(import.meta.glob('../src/assets/fonts/**/*.woff2'))
+    expect(allWoff2.length).toBeGreaterThanOrEqual(14)
+    for (const path of allWoff2) {
+      expect(path).toMatch(/\.woff2$/)
+    }
+    // 验证每款自托管字体的 subset 与 full 文件真实存在于资源池中
+    for (const font of fonts.filter((f) => f.selfHosted)) {
+      const subsetFile = font.assets?.subset
+      const fullFile = font.assets?.full
+      expect(subsetFile).toBeTruthy()
+      expect(fullFile).toBeTruthy()
+      const subsetName = subsetFile!.split('/').pop()!
+      const fullName = fullFile!.split('/').pop()!
+      expect(allWoff2.some((p) => p.endsWith(`/${subsetName}`)), `${subsetName} 不存在`).toBe(true)
+      expect(allWoff2.some((p) => p.endsWith(`/${fullName}`)), `${fullName} 不存在`).toBe(true)
+    }
+  })
+
   it('设计稿的主字体（汇文明朝体）已核实授权并可分发', () => {
     const huiwen = getFont('huawen-mingchao')
     expect(huiwen.licenseStatus).toBe('verified')

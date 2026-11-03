@@ -18,10 +18,18 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ finish: [] }>()
 const root = ref<HTMLElement | null>(null)
-const count = 28
+const count = 20
 let frame = 0
 let fallback: ReturnType<typeof setTimeout> | undefined
 const duration = 900
+
+interface StripElementMap {
+  strip: HTMLElement
+  frontFace?: HTMLElement
+  backFace?: HTMLElement
+  shade: HTMLElement
+  isFront: boolean
+}
 
 // 受控透视保留可见的弧形纸边，最大抬升由预留空间限定。
 onMounted(() => {
@@ -32,19 +40,30 @@ onMounted(() => {
   root.value.style.setProperty('--page-width', `${width}px`)
   root.value.style.setProperty('--strip-width', `${segmentWidth + 0.35}px`)
   const strips = [...root.value.querySelectorAll<HTMLElement>('.paper-strip')]
+  const stripMaps: StripElementMap[] = strips.map((strip) => {
+    const frontFace = strip.querySelector<HTMLElement>('.paper-face--front') ?? undefined
+    const backFace = strip.querySelector<HTMLElement>('.paper-face--back') ?? undefined
+    const shade = strip.querySelector<HTMLElement>('.paper-shade')!
+    if (backFace) backFace.style.display = 'none'
+    return { strip, frontFace, backFace, shade, isFront: true }
+  })
+
   const started = performance.now()
   const render = (now: number) => {
     const time = Math.min(1, (now - started) / duration)
     const progress = time * time * (3 - 2 * time)
     const lift = Math.sin(Math.PI * progress)
     const geometry = projectTurn(width, height, progress, props.fromRight, count)
-    strips.forEach((strip, index) => {
+    stripMaps.forEach((node, index) => {
       const surface = geometry[index]
-      strip.style.transform = `matrix3d(${surface.matrix.join(',')})`
-      strip.style.zIndex = `${Math.round(surface.depth) + 1}`
-      strip.style.setProperty('--front-visible', surface.front ? '1' : '0')
-      strip.style.setProperty('--back-visible', surface.front ? '0' : '1')
-      strip.style.setProperty('--shade', `${surface.shade}`)
+      node.strip.style.transform = `matrix3d(${surface.matrix.join(',')})`
+      node.strip.style.zIndex = `${Math.round(surface.depth) + 1}`
+      node.shade.style.opacity = `${surface.shade}`
+      if (node.isFront !== surface.front) {
+        node.isFront = surface.front
+        if (node.frontFace) node.frontFace.style.display = surface.front ? '' : 'none'
+        if (node.backFace) node.backFace.style.display = surface.front ? 'none' : ''
+      }
     })
     root.value?.style.setProperty('--cast-shadow', `${0.12 * lift}`)
     if (time < 1) frame = requestAnimationFrame(render)
@@ -73,6 +92,7 @@ function offset(index: number, back: boolean) {
       <div class="paper-face paper-face--back" :style="{ left: offset(index - 1, true) }">
         <ReadingSheet v-if="back" v-bind="sheetProps" :page="back" page-position="first" />
       </div>
+      <div class="paper-shade" />
     </div>
   </div>
 </template>
@@ -96,17 +116,14 @@ function offset(index: number, back: boolean) {
   overflow: hidden;
   transform-origin: left top;
   will-change: transform;
-  --front-visible: 1;
-  --back-visible: 0;
-  --shade: 0;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--zz-ink);
-    opacity: var(--shade);
-  }
+}
+.paper-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--zz-ink);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
 }
 .paper-face {
   position: absolute;
@@ -114,8 +131,7 @@ function offset(index: number, back: boolean) {
   width: var(--page-width);
   height: 100%;
   background: var(--zz-paper-reading);
-  &--front { opacity: var(--front-visible); }
-  &--back { opacity: var(--back-visible); }
+  backface-visibility: hidden;
   :deep(.sheet) { box-shadow: none; }
 }
 </style>
