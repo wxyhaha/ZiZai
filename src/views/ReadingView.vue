@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useReadingState } from '@/composables/useReadingState'
-import { useBookmarks } from '@/composables/useBookmarks'
 import { fonts } from '@/data/fonts'
 import { texts } from '@/data/texts'
 import type { StudioTool } from '@/components/studio/StudioToolbar.vue'
@@ -13,7 +12,6 @@ import FontPickerPanel from '@/components/studio/FontPickerPanel.vue'
 import TextPickerPanel from '@/components/studio/TextPickerPanel.vue'
 import TypographyPanel from '@/components/studio/TypographyPanel.vue'
 import WritingPanel from '@/components/studio/WritingPanel.vue'
-import BookmarkPanel from '@/components/studio/BookmarkPanel.vue'
 
 // 正文字体随本路由懒加载：进入赏字时才下载，首页永远不会请求它们。
 import '@/styles/fonts/reading-fonts.scss'
@@ -23,7 +21,6 @@ const {
   state,
   activeText,
   activeFont,
-  isVertical,
   isCustom,
   setLayout,
   setFont,
@@ -34,9 +31,15 @@ const {
   setLineHeight,
   setLetterSpacing,
   setContentWidth,
+  setPaperTheme,
+  setPunctuationStyle,
+  setEraFormat,
+  setScriptStyle,
+  setJudouMode,
+  setWoodblockFrame,
+  reset,
 } = useReadingState()
 
-const { items: bookmarks, count: bookmarkCount, add, remove, lastError } = useBookmarks()
 const activePanel = ref<StudioTool | null>(null)
 
 function openPanel(tool: StudioTool) {
@@ -56,43 +59,6 @@ onMounted(() => {
     activePanel.value = panelMap[requested]
   }
 })
-
-/** 收藏当前这一整套搭配：字体 + 文稿 + 版式 + 排版参数。 */
-function saveCurrent() {
-  add({
-    title: isCustom.value ? activeText.value.paragraphs.join('').slice(0, 12) : activeText.value.title,
-    fontId: state.value.fontId,
-    textId: isCustom.value ? null : (state.value.textId ?? null),
-    customText: state.value.customText,
-    layout: state.value.layout,
-    fontSize: state.value.fontSize,
-    lineHeight: state.value.lineHeight,
-    letterSpacing: state.value.letterSpacing,
-    contentWidth: state.value.contentWidth,
-  })
-}
-
-/** 把收藏恢复成当前阅读状态；书页组件会据新参数重新分页并回到第一页。 */
-function restore(bookmark: import('@/composables/useBookmarks').Bookmark) {
-  setFont(bookmark.fontId)
-  setLayout(bookmark.layout)
-  setFontSize(bookmark.fontSize)
-  setLineHeight(bookmark.lineHeight)
-  setLetterSpacing(bookmark.letterSpacing)
-  setContentWidth(bookmark.contentWidth)
-  if (bookmark.customText) {
-    setCustomText(bookmark.customText)
-  } else if (bookmark.textId) {
-    setText(bookmark.textId)
-  }
-  activePanel.value = null
-}
-
-/** 收藏入口上先展示将要保存的搭配信息。 */
-const currentLabel = computed(() => {
-  const parts = [activeFont.value.name, isVertical.value ? '竖排' : '横排', `${state.value.fontSize}px`]
-  return parts.join(' · ')
-})
 </script>
 
 <template>
@@ -110,12 +76,18 @@ const currentLabel = computed(() => {
           :line-height="state.lineHeight"
           :letter-spacing="state.letterSpacing"
           :content-width="state.contentWidth"
+          :paper-theme="state.paperTheme"
+          :punctuation-style="state.punctuationStyle"
+          :era-format="state.eraFormat"
+          :script-style="state.scriptStyle"
+          :judou-mode="state.judouMode"
+          :woodblock-frame="state.woodblockFrame"
           :is-custom="isCustom"
           :has-active-modal="activePanel !== null"
         />
 
         <aside class="rail">
-          <StudioToolbar :active="activePanel" :bookmark-count="bookmarkCount" @open="openPanel" />
+          <StudioToolbar :active="activePanel" @open="openPanel" />
         </aside>
       </div>
     </main>
@@ -145,12 +117,25 @@ const currentLabel = computed(() => {
       :line-height="state.lineHeight"
       :letter-spacing="state.letterSpacing"
       :content-width="state.contentWidth"
+      :paper-theme="state.paperTheme"
+      :punctuation-style="state.punctuationStyle"
+      :era-format="state.eraFormat"
+      :script-style="state.scriptStyle"
+      :judou-mode="state.judouMode"
+      :woodblock-frame="state.woodblockFrame"
       @update:open="(v) => (activePanel = v ? 'typography' : null)"
       @update:layout="setLayout"
       @update:font-size="setFontSize"
       @update:line-height="setLineHeight"
       @update:letter-spacing="setLetterSpacing"
       @update:content-width="setContentWidth"
+      @update:paper-theme="setPaperTheme"
+      @update:punctuation-style="setPunctuationStyle"
+      @update:era-format="setEraFormat"
+      @update:script-style="setScriptStyle"
+      @update:judou-mode="setJudouMode"
+      @update:woodblock-frame="setWoodblockFrame"
+      @reset="reset"
     />
 
     <WritingPanel
@@ -160,18 +145,6 @@ const currentLabel = computed(() => {
       @update:open="(v) => (activePanel = v ? 'write' : null)"
       @apply="setCustomText"
       @clear="clearCustomText"
-    />
-
-    <BookmarkPanel
-      :open="activePanel === 'bookmarks'"
-      :bookmarks="bookmarks"
-      :fonts="fonts"
-      :current-label="currentLabel"
-      :error-message="lastError"
-      @update:open="(v) => (activePanel = v ? 'bookmarks' : null)"
-      @save="saveCurrent"
-      @restore="restore"
-      @remove="remove"
     />
   </div>
 </template>

@@ -1,6 +1,6 @@
-/* 由 scripts/build-font-subsets.py 生成，请勿手改。 */
-/* 阅读字体子集：只被 ReadingView 引用，随赏字路由懒加载。 */
-/* 完整字体（*-full.woff2）不在这里声明，由 useFontLoading 按需注入。 */
+/* 由 scripts/build-fonts.py 自动生成，请勿手动编辑。 */
+/* 赏字页面全量 WOFF2 字体声明：随赏字路由按需懒加载。 */
+/* 完整保留原字体 100% 字符映射（cmap）、字形与 OpenType 排版特性。 */
 
 @font-face {
   font-family: "Huiwen Mincho";
@@ -29,18 +29,18 @@
 @font-face {
   font-family: "Noto Serif SC";
   font-style: normal;
-  font-weight: 400;
+  font-weight: 200 900;
   font-display: swap;
   src: url("../../assets/fonts/noto-serif-sc/noto-serif-sc.woff2") format("woff2");
 }
 
-/* 标题用的 500 字重切片，避免浏览器对 400 做合成加粗（会糊） */
+/* 标题用的 500 字重匹配规则（共享全量可变字体资产） */
 @font-face {
   font-family: "Noto Serif SC";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("../../assets/fonts/noto-serif-sc/noto-serif-sc-500.woff2") format("woff2");
+  src: url("../../assets/fonts/noto-serif-sc/noto-serif-sc.woff2") format("woff2");
 }
 
 @font-face {

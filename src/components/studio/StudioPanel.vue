@@ -131,7 +131,8 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
   &__body {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
     padding: 22px 30px 30px;
   }

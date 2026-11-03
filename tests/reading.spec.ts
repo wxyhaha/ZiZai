@@ -12,7 +12,7 @@ import { fonts } from '@/data/fonts'
 import { texts } from '@/data/texts'
 
 beforeEach(() => {
-  useReadingState().reset()
+  useReadingState().resetToDefaults()
 })
 
 function makeRouter() {
@@ -62,7 +62,7 @@ describe('赏字书页', () => {
     expect(short.get('.zz-sr-only').text()).toBe('1 / 1 页')
     short.unmount()
 
-    useReadingState().reset()
+    useReadingState().resetToDefaults()
     const long = await mountStudio()
     expect(long.get('.book-spread').attributes('data-page-mode')).toBe('spread')
     expect(Number(long.get('.book-spread').attributes('data-page-count'))).toBeGreaterThan(1)
@@ -111,15 +111,15 @@ describe('赏字书页', () => {
 
     wrapper.findComponent(TextPickerPanel).vm.$emit('select', texts[1].id)
     await nextTick()
-    expect(wrapper.get('.sheet').attributes('data-page')).toBe('1')
-    expect(wrapper.get('.sheet__title').text()).toBe(texts[1].title)
+    expect(wrapper.find('[data-page="1"]').exists()).toBe(true)
+    expect(wrapper.get('[data-page="1"]').text()).toContain(texts[1].title)
     wrapper.unmount()
   })
 
-  it('五个轻工具入口保留字体、文选、版式、题写和收藏', async () => {
+  it('四个轻工具入口保留字体、文选、版式和题写', async () => {
     const wrapper = await mountStudio()
     const labels = wrapper.findAll('.tools__label').map((node) => node.text())
-    expect(labels).toEqual(['字体', '文选', '版式', '题写', '收藏'])
+    expect(labels).toEqual(['字体', '文选', '版式', '题写'])
 
     await wrapper.findAll('.tools__btn')[1].trigger('click')
     expect(document.body.querySelector('[role="dialog"] .panel__title')?.textContent).toContain('文选')

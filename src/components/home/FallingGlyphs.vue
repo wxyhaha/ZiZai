@@ -9,7 +9,7 @@ function advanceGlyph(glyph: FallingGlyph) {
 
 function glyphStyle(glyph: FallingGlyph) {
   return {
-    '--glyph-font': `"${glyph.fontFamily}"`,
+    '--glyph-font': `"${glyph.fontFamily}", "Songti SC", "SimSun", serif`,
     '--glyph-left': glyph.left,
     '--glyph-size': `${glyph.size}px`,
     '--glyph-duration': `${glyph.duration.toFixed(2)}s`,

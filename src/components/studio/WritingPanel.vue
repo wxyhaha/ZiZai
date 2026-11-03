@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import StudioPanel from './StudioPanel.vue'
 import type { FontEntryWithAssets } from '@/data/fonts'
 import { CUSTOM_TEXT_LIMIT } from '@/composables/useReadingState'
-import { countMissingInFull, countMissingInSubset, useFontLoading } from '@/composables/useFontLoading'
+import { countMissingInFont, useFontLoading } from '@/composables/useFontLoading'
 
 /**
  * 题写面板。
@@ -42,19 +42,13 @@ watch(
 const length = computed(() => draft.value.length)
 const overLimit = computed(() => length.value > CUSTOM_TEXT_LIMIT)
 
-/** 内容子集覆盖不到的字符数 */
-const missingInSubset = computed(() =>
-  draft.value.trim() ? countMissingInSubset(props.font.id, draft.value) : 0,
-)
-/** 连完整字体都覆盖不到的字符数 */
-const missingInFull = computed(() =>
-  draft.value.trim() ? countMissingInFull(props.font.id, draft.value) : 0,
+/** 原字体未收录的字符数（基于母本真实 cmap） */
+const missingInFont = computed(() =>
+  draft.value.trim() ? countMissingInFont(props.font.id, draft.value) : 0,
 )
 
 const loadStatus = computed(() => statusOf(props.font.id))
-const canLoadFull = computed(() => missingInSubset.value > 0 && loadStatus.value === 'idle')
 const isLoading = computed(() => loadStatus.value === 'loading')
-const isReady = computed(() => loadStatus.value === 'ready')
 const isError = computed(() => loadStatus.value === 'error')
 
 async function requestFull() {
@@ -102,56 +96,30 @@ function clear() {
       超出 {{ CUSTOM_TEXT_LIMIT }} 字上限，超出的部分不会被应用。
     </p>
 
-    <!-- 缺字提示：这是「完整字体」策略对用户唯一可见的地方 -->
-    <section v-if="missingInSubset > 0" class="glyph-notice" aria-live="polite">
-      <template v-if="isReady">
-        <p class="glyph-notice__title">完整字形已加载</p>
-        <p class="glyph-notice__text">
-          这段文字里的 {{ missingInSubset }} 个生僻字现在也能以
-          {{ props.font.name }} 呈现了。
-        </p>
-      </template>
-
-      <template v-else-if="isLoading">
-        <p class="glyph-notice__title">正在加载完整字形…</p>
-        <p class="glyph-notice__text">
-          {{ props.font.name }}的完整版本约 {{ props.font.assets?.fullSizeLabel }}，请稍候。
-        </p>
-      </template>
-
-      <template v-else-if="isError">
-        <p class="glyph-notice__title">完整字形加载失败</p>
-        <p class="glyph-notice__text">
-          文字仍可正常阅读，其中 {{ missingInSubset }} 个生僻字会以系统字体显示。
-          你可以重试，或换一款字体。
-        </p>
-        <button type="button" class="glyph-notice__action" @click="requestFull">重试</button>
-      </template>
-
-      <template v-else>
-        <p class="glyph-notice__title">
-          这段文字里有 {{ missingInSubset }} 个字不在
-          {{ props.font.name }}的默认字形中
-        </p>
-        <p class="glyph-notice__text">
-          它们会用系统字体显示，与前后字形略有差异。加载完整字体（约
-          {{ props.font.assets?.fullSizeLabel }}）后即可统一。
-        </p>
-        <button
-          v-if="canLoadFull"
-          type="button"
-          class="glyph-notice__action"
-          @click="requestFull"
-        >
-          加载完整字形
-        </button>
-      </template>
+    <!-- 缺字与字体加载提示 -->
+    <section v-if="isError" class="glyph-notice" aria-live="polite">
+      <p class="glyph-notice__title">字体加载失败</p>
+      <p class="glyph-notice__text">
+        文字仍可正常阅读，将以系统字体显示。你可以重试，或换一款字体。
+      </p>
+      <button type="button" class="glyph-notice__action" @click="requestFull">重试加载</button>
     </section>
 
-    <p v-if="missingInFull > 0" class="glyph-notice glyph-notice--soft">
-      有 {{ missingInFull }} 个字连完整字体也未收录（超出 GB2312 范围）。
-      这部分文字会以系统字体显示，无法统一。
-    </p>
+    <section v-else-if="isLoading" class="glyph-notice" aria-live="polite">
+      <p class="glyph-notice__title">正在加载字体…</p>
+      <p class="glyph-notice__text">
+        {{ props.font.name }}约 {{ props.font.assets?.fullSizeLabel }}，请稍候。
+      </p>
+    </section>
+
+    <section v-if="missingInFont > 0" class="glyph-notice glyph-notice--soft" aria-live="polite">
+      <p class="glyph-notice__title">
+        这段文字里有 {{ missingInFont }} 个字不在 {{ props.font.name }} 的收录范围内
+      </p>
+      <p class="glyph-notice__text">
+        连完整字体也未收录（超出原字体字符库）。这部分文字会以系统衬线字体显示，无法完全统一。
+      </p>
+    </section>
 
     <template #footer>
       <div class="actions">

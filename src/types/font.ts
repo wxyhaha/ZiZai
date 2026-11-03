@@ -42,6 +42,15 @@ export interface FontEntry {
   /** 英文名 / 拉丁名 */
   latinName?: string
   /**
+   * CSS 字体字重定义。
+   * 常规静态字体为 '400'，可变字体如思源宋体为 '200 900'。
+   */
+  cssWeight?: string
+  /**
+   * 原始母本文件名（存在于 scripts/font-sources/），用于构建转换与完整性校验。
+   */
+  sourceFile?: string
+  /**
    * CSS font-family 值（含回退栈）。
    * 自托管字体使用 app 内定义的 family 名，未核实的字体使用系统回退栈。
    */

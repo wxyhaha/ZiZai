@@ -2,6 +2,20 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { LayoutMode } from '@/types'
+import { defaultPaperThemeId, type PaperThemeId } from '@/data/paperThemes'
+import {
+  defaultPunctuationStyleId,
+  sanitizeTextForEra,
+  type PunctuationStyleId,
+} from '@/data/punctuationStyles'
+import {
+  defaultEraFormatId,
+  type EraFormatId,
+} from '@/data/eraFormats'
+import {
+  defaultScriptStyleId,
+  type ScriptStyleId,
+} from '@/data/scriptStyles'
 import { paginateText, type BookPage } from '@/composables/usePagination'
 import {
   buildPageTurnPlan,
@@ -27,11 +41,23 @@ const props = withDefaults(
     contentWidth: number
     isCustom?: boolean
     hasActiveModal?: boolean
+    paperTheme?: PaperThemeId
+    punctuationStyle?: PunctuationStyleId
+    eraFormat?: EraFormatId
+    scriptStyle?: ScriptStyleId
+    judouMode?: boolean
+    woodblockFrame?: boolean
   }>(),
   {
     era: undefined,
     isCustom: false,
     hasActiveModal: false,
+    paperTheme: defaultPaperThemeId,
+    punctuationStyle: defaultPunctuationStyleId,
+    eraFormat: defaultEraFormatId,
+    scriptStyle: defaultScriptStyleId,
+    judouMode: true,
+    woodblockFrame: true,
   },
 )
 
@@ -108,6 +134,12 @@ function canvasMeasurer() {
   }
 }
 
+const effectiveParagraphs = computed(() => {
+  // 策略 A：横排模式下统一按现代标点进行纯化与排版；竖排模式下按选定的时代标点处理
+  const targetStyle = props.layout === 'horizontal' ? 'modern' : props.punctuationStyle
+  return props.paragraphs.map((p) => sanitizeTextForEra(p, targetStyle))
+})
+
 function getPaginationInput(
   pageWidth: number,
   pageHeight: number,
@@ -117,7 +149,7 @@ function getPaginationInput(
     title: props.title,
     author: props.author,
     era: props.era,
-    paragraphs: props.paragraphs,
+    paragraphs: effectiveParagraphs.value,
     layout: props.layout,
     fontFamily: props.fontFamily,
     fontSize: props.fontSize,
@@ -158,18 +190,22 @@ async function paginate(resetToFirstPage: boolean) {
   finishTurn()
   const currentGeneration = ++generation
   if (resetToFirstPage) spreadStart.value = 0
-  // 先用方正的汉字字面估算同步绘制，避免等字体网络请求时书页空白。
-  resolvePages((_character, fontSize) => fontSize)
 
+  // 1. 等待当前字体在浏览器中加载就绪（带超时安全熔断）
   const sample = `${props.title}${props.author}${props.paragraphs.join('')}`
   try {
     if (document.fonts?.load) {
-      await document.fonts.load(`${props.fontSize}px ${props.fontFamily}`, sample)
+      await Promise.race([
+        document.fonts.load(`${props.fontSize}px ${props.fontFamily}`, sample),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ])
     }
   } catch {
-    // Canvas 使用可用回退字体测量；字体加载失败时页面仍保持可读。
+    // 降级使用可用回退字体测量
   }
   if (currentGeneration !== generation) return
+
+  // 2. 字体加载就绪后，直接执行单次精确 Canvas 分页，彻底消除双重排版与跳页
   resolvePages(canvasMeasurer())
 }
 
@@ -279,6 +315,9 @@ watch(
     props.author,
     props.era,
     props.paragraphs.join('\n'),
+    props.punctuationStyle,
+    props.eraFormat,
+    props.scriptStyle,
     props.fontFamily,
     props.layout,
     props.fontSize,

@@ -1,0 +1,663 @@
+[
+  {
+    "id": "huawen-mingchao",
+    "name": "汇文明朝体",
+    "sourceFile": "Huiwen.ttf",
+    "src_cmap_count": 14070,
+    "dst_cmap_count": 14070,
+    "cmap_match": true,
+    "src_glyph_count": 13314,
+    "dst_glyph_count": 13314,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [
+      "DSIG"
+    ],
+    "src_size": 24866404,
+    "dst_size": 8238624,
+    "compression_ratio": "33.1%"
+  },
+  {
+    "id": "lxgw-wenkai",
+    "name": "霞鹜文楷",
+    "sourceFile": "LXGWWenKai-Regular.ttf",
+    "src_cmap_count": 46926,
+    "dst_cmap_count": 46926,
+    "cmap_match": true,
+    "src_glyph_count": 47336,
+    "dst_glyph_count": 47336,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 25928940,
+    "dst_size": 8098988,
+    "compression_ratio": "31.2%"
+  },
+  {
+    "id": "zhuque-fangsong",
+    "name": "朱雀仿宋",
+    "sourceFile": "ZhuqueFangsong-Regular.ttf",
+    "src_cmap_count": 12882,
+    "dst_cmap_count": 12882,
+    "cmap_match": true,
+    "src_glyph_count": 13805,
+    "dst_glyph_count": 13805,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [
+      "DSIG"
+    ],
+    "src_size": 8824084,
+    "dst_size": 4805288,
+    "compression_ratio": "54.5%"
+  },
+  {
+    "id": "noto-serif-sc",
+    "name": "思源宋体",
+    "sourceFile": "NotoSerifSC.ttf",
+    "src_cmap_count": 30928,
+    "dst_cmap_count": 30928,
+    "cmap_match": true,
+    "src_glyph_count": 31058,
+    "dst_glyph_count": 31058,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": true,
+    "fvar_match": true,
+    "axes": [
+      {
+        "tag": "wght",
+        "min": 200.0,
+        "max": 900.0,
+        "def": 200.0
+      }
+    ],
+    "dropped_tables": [],
+    "src_size": 25125512,
+    "dst_size": 11032328,
+    "compression_ratio": "43.9%"
+  },
+  {
+    "id": "qiji-font",
+    "name": "齐伋刻本",
+    "sourceFile": "Qiji-Combo.ttf",
+    "src_cmap_count": 21068,
+    "dst_cmap_count": 21068,
+    "cmap_match": true,
+    "src_glyph_count": 19665,
+    "dst_glyph_count": 19665,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 41068828,
+    "dst_size": 18355684,
+    "compression_ratio": "44.7%"
+  },
+  {
+    "id": "lxgw-zhisong",
+    "name": "霞鹜致宋",
+    "sourceFile": "LXGWZhiSongCL.ttf",
+    "src_cmap_count": 23595,
+    "dst_cmap_count": 23595,
+    "cmap_match": true,
+    "src_glyph_count": 23887,
+    "dst_glyph_count": 23887,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 8778178,
+    "dst_size": 3841688,
+    "compression_ratio": "43.8%"
+  },
+  {
+    "id": "genwan-mincho",
+    "name": "源云明体",
+    "sourceFile": "GenWanMin2TC-R.otf",
+    "src_cmap_count": 35349,
+    "dst_cmap_count": 35349,
+    "cmap_match": true,
+    "src_glyph_count": 37684,
+    "dst_glyph_count": 37684,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 22778196,
+    "dst_size": 14919292,
+    "compression_ratio": "65.5%"
+  },
+  {
+    "id": "i-ming",
+    "name": "一点明体",
+    "sourceFile": "I.Ming-8.10.ttf",
+    "src_cmap_count": 60017,
+    "dst_cmap_count": 60017,
+    "cmap_match": true,
+    "src_glyph_count": 60597,
+    "dst_glyph_count": 60597,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 25887784,
+    "dst_size": 10730344,
+    "compression_ratio": "41.4%"
+  },
+  {
+    "id": "chill-huosong",
+    "name": "寒蝉活宋体",
+    "sourceFile": "ChillHuoSong.otf",
+    "src_cmap_count": 12152,
+    "dst_cmap_count": 12152,
+    "cmap_match": true,
+    "src_glyph_count": 13154,
+    "dst_glyph_count": 13154,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 30026220,
+    "dst_size": 11730792,
+    "compression_ratio": "39.1%"
+  },
+  {
+    "id": "rhyme-grass",
+    "name": "韵草体",
+    "sourceFile": "Rhyme-Grass-G.ttf",
+    "src_cmap_count": 18352,
+    "dst_cmap_count": 18352,
+    "cmap_match": true,
+    "src_glyph_count": 15064,
+    "dst_glyph_count": 15064,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 53283632,
+    "dst_size": 8990180,
+    "compression_ratio": "16.9%"
+  }
+]

@@ -3,6 +3,8 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import ReadingSheet from './ReadingSheet.vue'
 import type { BookPage } from '@/composables/usePagination'
 import type { LayoutMode } from '@/types'
+import type { PaperThemeId } from '@/data/paperThemes'
+import type { PunctuationStyleId } from '@/data/punctuationStyles'
 import { projectTurn } from '@/composables/pageTurnGeometry'
 
 const props = defineProps<{
@@ -14,6 +16,10 @@ const props = defineProps<{
     fontFamily: string; layout: LayoutMode; fontSize: number
     lineHeight: number; letterSpacing: number; contentWidth: number
     isCustom?: boolean; single: boolean
+    paperTheme?: PaperThemeId
+    punctuationStyle?: PunctuationStyleId
+    judouMode?: boolean
+    woodblockFrame?: boolean
   }
 }>()
 const emit = defineEmits<{ finish: [] }>()
@@ -130,7 +136,7 @@ function offset(index: number, back: boolean) {
   top: 0;
   width: var(--page-width);
   height: 100%;
-  background: var(--zz-paper-reading);
+  background: var(--reading-bg, var(--zz-paper-reading));
   backface-visibility: hidden;
   :deep(.sheet) { box-shadow: none; }
 }

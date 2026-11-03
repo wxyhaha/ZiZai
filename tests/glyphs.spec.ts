@@ -68,14 +68,14 @@ afterEach(() => {
 })
 
 describe('首页落字资源', () => {
-  it('首页字体样式和四款字体资源都来自独立的 home 子集目录', () => {
+  it('首页字体样式和所有已收录字体资源都来自独立的 home 子集目录', () => {
     expect(HOME_FONT_STYLES).toHaveLength(1)
-    expect(FONT_ASSETS).toHaveLength(4)
+    expect(FONT_ASSETS).toHaveLength(FONT_IDS.length)
     expect(FONT_ASSETS.every((path) => path.includes('/home/falling-') && !path.includes('-full'))).toBe(true)
   })
 
   it('每款首页字体都有实际 cmap 抽样池与对应的专用 WOFF2 子集', () => {
-    expect(FONT_IDS).toHaveLength(4)
+    expect(FONT_IDS).toHaveLength(FONT_ASSETS.length)
     expect(pools.uniqueHanCount).toBe(
       new Set(FONT_IDS.flatMap((id) => Array.from(pools.fonts[id].chars))).size,
     )
@@ -173,7 +173,8 @@ describe('落字随机布局', () => {
     expect(glyphs).toHaveLength(count)
     expect(glyphs.filter((g) => g.side === 'left')).toHaveLength(count / 2)
     expect(glyphs.filter((g) => g.side === 'right')).toHaveLength(count / 2)
-    expect(new Set(glyphs.map((g) => g.fontId))).toEqual(new Set(FONT_IDS))
+    expect(new Set(glyphs.map((g) => g.fontId)).size).toBeLessThanOrEqual(4)
+    expect(glyphs.every((g) => FONT_IDS.includes(g.fontId))).toBe(true)
 
     for (const glyph of glyphs) {
       const pool = pools.fonts[glyph.fontId]
@@ -204,6 +205,15 @@ describe('落字随机布局', () => {
       expect(Math.abs(glyph.drift)).toBeGreaterThanOrEqual(driftLimits[0])
       expect(Math.abs(glyph.drift)).toBeLessThanOrEqual(driftLimits[1])
     }
+  })
+
+  it('所有已注册自托管字体在不同 seed 会话中均有机会参与落字', () => {
+    const allActivated = new Set<string>()
+    for (let i = 0; i < 30; i += 1) {
+      const glyphs = buildGlyphs({ seed: 20261102 + i * 17, viewport: 'desktop' })
+      for (const g of glyphs) allActivated.add(g.fontId)
+    }
+    expect(allActivated).toEqual(new Set(FONT_IDS))
   })
 
   it('device widths map to the intended responsive glyph counts', () => {

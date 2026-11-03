@@ -3,22 +3,24 @@ import type { FontEntry } from '@/types/font'
 /**
  * 字体目录。
  *
- * 说明：
- * - 只有 `licenseStatus: 'verified'` 的条目才会随本项目分发字体文件。
- * - `family` 是 app 内的 CSS 字体族名，回退栈保证字体尚未加载或
- *   缺少字形时仍有可读的中文衬线兜底，不会掉成方块。
- * - 每款字体都有两套资源（见 scripts/build-font-subsets.py）：
- *   `subset` 覆盖站内已收录内容，随路由加载；
- *   `full` 覆盖 GB2312 全字，仅在用户题写出现缺字时按需拉取。
- * - 详细授权依据、来源与核对日期见 docs/font-licenses.md。
+ * 设计原则：
+ * - 字体注册表是全站字体的单一事实来源（Single Source of Truth），
+ *   严禁在业务逻辑中硬编码字体列表或字体数量。
+ * - 只有 `licenseStatus: 'verified'` 且 `selfHosted: true` 的条目才会打包并分发全量字体文件。
+ * - 赏字页面采用真正的全量 WOFF2 字体，100% 保留母本原字体的字符映射（cmap）、
+ *   字形轮廓、OpenType 排版特性表与可变轴能力。
+ * - 首页落字使用构建管线独立生成的轻量汉字子集，不加载全量字体。
+ * - 详细授权依据、来源与核对记录见 docs/font-licenses.md 与 docs/font-integrity-report.md。
  */
 
 export interface FontAssetPaths {
-  /** 内容子集：覆盖站内全部古文与界面文案 */
-  subset: string
-  /** 完整字体：覆盖 GB2312 全字，按需加载 */
+  /** 真正全量 WOFF2 字体路径（不裁剪任何字形与 OpenType 特性） */
+  file: string
+  /** 兼容历史接口的完整字体别名 */
   full: string
-  /** 完整字体的体积描述，用于在 UI 上如实体告知用户 */
+  /** 兼容历史接口的内容子集别名（现统一指向全量字体） */
+  subset: string
+  /** 全量字体的体积描述，用于在 UI 上如实告知用户 */
   fullSizeLabel: string
 }
 
@@ -26,11 +28,22 @@ export interface FontEntryWithAssets extends FontEntry {
   assets?: FontAssetPaths
 }
 
+function makeFontAssets(fileUrl: string, fullSizeLabel: string): FontAssetPaths {
+  return {
+    file: fileUrl,
+    full: fileUrl,
+    subset: fileUrl,
+    fullSizeLabel,
+  }
+}
+
 export const fonts: FontEntryWithAssets[] = [
   {
     id: 'huawen-mingchao',
     name: '汇文明朝体',
     latinName: 'Huiwen Mincho',
+    cssWeight: '400',
+    sourceFile: 'Huiwen.ttf',
     family: '"Huiwen Mincho", "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -46,21 +59,20 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '山月',
     licenseCheckedAt: '2026-11-02',
-    assets: {
-      subset: new URL('../assets/fonts/huawen-mingchao/huawen-mingchao.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/huawen-mingchao/huawen-mingchao-full.woff2', import.meta.url)
-        .href,
-      fullSizeLabel: '4.1 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/huawen-mingchao/huawen-mingchao.woff2', import.meta.url).href,
+      '7.9 MB',
+    ),
     caveats: [
-      '符号修正版未收录「楯」等少量生僻字，遇到时会回退到思源宋体，观感基本一致。',
-      '完整字体覆盖 GB2312 全部 6763 字，属于常用书写范围；超出范围的字仍会回退。',
+      '符号修正版未收录「楯」等少量生僻字，遇到原字体未收录字符时会自动回退到系统衬线体。',
     ],
   },
   {
     id: 'lxgw-wenkai',
     name: '霞鹜文楷',
     latinName: 'LXGW WenKai',
+    cssWeight: '400',
+    sourceFile: 'LXGWWenKai-Regular.ttf',
     family: '"LXGW WenKai", "Kaiti SC", "KaiTi", "STKaiti", "Noto Serif SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -76,17 +88,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '竹影',
     licenseCheckedAt: '2026-11-02',
-    assets: {
-      subset: new URL('../assets/fonts/lxgw-wenkai/lxgw-wenkai.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/lxgw-wenkai/lxgw-wenkai-full.woff2', import.meta.url).href,
-      fullSizeLabel: '1.5 MB',
-    },
-    caveats: ['保留字体名称「霞鹜」「LXGW」等；本项目只做 web 子集，不修改字形。'],
+    assets: makeFontAssets(
+      new URL('../assets/fonts/lxgw-wenkai/lxgw-wenkai.woff2', import.meta.url).href,
+      '7.7 MB',
+    ),
+    caveats: ['保留字体名称「霞鹜」「LXGW」等；本项目全量转换为 WOFF2 分发，不修改字形轮廓。'],
   },
   {
     id: 'zhuque-fangsong',
     name: '朱雀仿宋',
     latinName: 'Zhuque Fangsong',
+    cssWeight: '400',
+    sourceFile: 'ZhuqueFangsong-Regular.ttf',
     family: '"Zhuque Fangsong", "FangSong", "STFangsong", "Noto Serif SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -102,18 +115,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: false,
     sample: '纸上',
     licenseCheckedAt: '2026-11-02',
-    assets: {
-      subset: new URL('../assets/fonts/zhuque-fangsong/zhuque-fangsong.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/zhuque-fangsong/zhuque-fangsong-full.woff2', import.meta.url)
-        .href,
-      fullSizeLabel: '2.5 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/zhuque-fangsong/zhuque-fangsong.woff2', import.meta.url).href,
+      '4.6 MB',
+    ),
     caveats: ['v0.212 为技术预览版，部分生僻字仍在补入。'],
   },
   {
     id: 'noto-serif-sc',
     name: '思源宋体',
     latinName: 'Noto Serif SC',
+    cssWeight: '200 900',
+    sourceFile: 'NotoSerifSC.ttf',
     family: '"Noto Serif SC", "Songti SC", "SimSun", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -129,16 +142,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '春秋',
     licenseCheckedAt: '2026-11-02',
-    assets: {
-      subset: new URL('../assets/fonts/noto-serif-sc/noto-serif-sc.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/noto-serif-sc/noto-serif-sc-full.woff2', import.meta.url).href,
-      fullSizeLabel: '1.3 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/noto-serif-sc/noto-serif-sc.woff2', import.meta.url).href,
+      '10.5 MB',
+    ),
+    caveats: ['保留完整可变字重（wght 200–900），标题字重与正文字重共享同一份全量资源。'],
   },
   {
     id: 'qiji-font',
     name: '齐伋刻本',
-    latinName: 'Qiji Font',
+    latinName: 'Qiji',
+    cssWeight: '400',
+    sourceFile: 'Qiji-Combo.ttf',
     family: '"Qiji", "Huiwen Mincho", "Songti SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -154,17 +169,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '山月',
     licenseCheckedAt: '2026-11-03',
-    assets: {
-      subset: new URL('../assets/fonts/qiji-font/qiji-font.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/qiji-font/qiji-font-full.woff2', import.meta.url).href,
-      fullSizeLabel: '6.3 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/qiji-font/qiji-font.woff2', import.meta.url).href,
+      '17.5 MB',
+    ),
     caveats: ['由于提取自明代古籍刻本，部分西文字符与现代标点缺字，会自动回退到衬线字体。'],
   },
   {
     id: 'lxgw-zhisong',
     name: '霞鹜致宋',
     latinName: 'LXGW ZhiSong',
+    cssWeight: '400',
+    sourceFile: 'LXGWZhiSongCL.ttf',
     family: '"LXGW ZhiSong", "Huiwen Mincho", "Songti SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -180,17 +196,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '云岫',
     licenseCheckedAt: '2026-11-03',
-    assets: {
-      subset: new URL('../assets/fonts/lxgw-zhisong/lxgw-zhisong.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/lxgw-zhisong/lxgw-zhisong-full.woff2', import.meta.url).href,
-      fullSizeLabel: '1.2 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/lxgw-zhisong/lxgw-zhisong.woff2', import.meta.url).href,
+      '3.7 MB',
+    ),
     caveats: ['选用 Classic 经典刻本字形版，保留传统旧式印刷字形审美。'],
   },
   {
     id: 'genwan-mincho',
     name: '源云明体',
     latinName: 'GenWanMin',
+    cssWeight: '400',
+    sourceFile: 'GenWanMin2TC-R.otf',
     family: '"GenWanMin", "Huiwen Mincho", "Songti SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -206,17 +223,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '秋水',
     licenseCheckedAt: '2026-11-03',
-    assets: {
-      subset: new URL('../assets/fonts/genwan-mincho/genwan-mincho.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/genwan-mincho/genwan-mincho-full.woff2', import.meta.url).href,
-      fullSizeLabel: '2.6 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/genwan-mincho/genwan-mincho.woff2', import.meta.url).href,
+      '14.2 MB',
+    ),
     caveats: ['笔画交接处带墨晕圆角处理，特别适合模拟宣纸与竹纸上的古籍排印。'],
   },
   {
     id: 'i-ming',
     name: '一点明体',
     latinName: 'I.Ming',
+    cssWeight: '400',
+    sourceFile: 'I.Ming-8.10.ttf',
     family: '"I.Ming", "Huiwen Mincho", "Songti SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -232,17 +250,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '松风',
     licenseCheckedAt: '2026-11-03',
-    assets: {
-      subset: new URL('../assets/fonts/i-ming/i-ming.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/i-ming/i-ming-full.woff2', import.meta.url).href,
-      fullSizeLabel: '1.2 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/i-ming/i-ming.woff2', import.meta.url).href,
+      '10.2 MB',
+    ),
     caveats: ['遵循传统六书正字字形（传承字形），部分简化或俗写笔画保留本字本义。'],
   },
   {
     id: 'chill-huosong',
     name: '寒蝉活宋体',
     latinName: 'Chill HuoSong',
+    cssWeight: '400',
+    sourceFile: 'ChillHuoSong.otf',
     family: '"Chill HuoSong", "Huiwen Mincho", "Songti SC", serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -258,17 +277,18 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '微雨',
     licenseCheckedAt: '2026-11-03',
-    assets: {
-      subset: new URL('../assets/fonts/chill-huosong/chill-huosong.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/chill-huosong/chill-huosong-full.woff2', import.meta.url).href,
-      fullSizeLabel: '6.4 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/chill-huosong/chill-huosong.woff2', import.meta.url).href,
+      '11.2 MB',
+    ),
     caveats: ['带有做旧做残纹理算法，字形具有微小飞白斑驳感。'],
   },
   {
     id: 'rhyme-grass',
     name: '韵草体',
     latinName: 'Rhyme Grass',
+    cssWeight: '400',
+    sourceFile: 'Rhyme-Grass-G.ttf',
     family: '"Rhyme Grass", "Huiwen Mincho", "Kaiti SC", cursive, serif',
     selfHosted: true,
     licenseStatus: 'verified',
@@ -284,11 +304,10 @@ export const fonts: FontEntryWithAssets[] = [
     suitedForDisplay: true,
     sample: '醉翁',
     licenseCheckedAt: '2026-11-03',
-    assets: {
-      subset: new URL('../assets/fonts/rhyme-grass/rhyme-grass.woff2', import.meta.url).href,
-      full: new URL('../assets/fonts/rhyme-grass/rhyme-grass-full.woff2', import.meta.url).href,
-      fullSizeLabel: '4.1 MB',
-    },
+    assets: makeFontAssets(
+      new URL('../assets/fonts/rhyme-grass/rhyme-grass.woff2', import.meta.url).href,
+      '8.6 MB',
+    ),
     caveats: ['由于取自古代草书法帖集，未收录的罕用字或现代标点会自动回退到衬线体。'],
   },
 ]
@@ -302,7 +321,8 @@ export function getFont(id: string): FontEntryWithAssets {
 export const defaultFontId = 'huawen-mingchao'
 
 /**
- * 所有自托管字体共用的默认回退栈。
- * 用在 UI 元素上，保证在字体尚未加载时也有合理的衬线字形。
+ * 获取所有已核实并自托管的字体列表（用于构建管线与自动扩展）。
  */
-export const fallbackSerif = '"Noto Serif SC", "Songti SC", "SimSun", serif'
+export function getSelfHostedFonts(): FontEntryWithAssets[] {
+  return fonts.filter((f) => f.selfHosted && f.licenseStatus === 'verified')
+}

@@ -27,6 +27,9 @@ export interface FallingFontWeights {
   [fontId: string]: number
 }
 
+/** 单次会话最多同时激活的落字字体数量，控制首屏子集下载在 ~1.2 MB 以内 */
+export const MAX_ACTIVE_FALLING_FONTS = 4
+
 interface FontPool {
   id: FallingFontId
   family: string
@@ -51,6 +54,7 @@ export interface BuildGlyphsOptions {
   height?: number
   count?: number
   fontWeights?: FallingFontWeights
+  activeFontLimit?: number
 }
 
 const DEFAULT_FONT_WEIGHTS: Record<FallingFontId, number> = Object.fromEntries(
@@ -345,11 +349,23 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
   const count = Math.min(requestedCount, safeCount)
   if (count === 0) return []
 
+  // 运行时活跃字体限制：控制浏览器仅下载当前选中的轻量子集（约 1.2 MB），同时所有字体基于 seed 均等轮换
+  const activeLimit =
+    options.activeFontLimit !== undefined
+      ? (options.activeFontLimit > 0 ? options.activeFontLimit : weightedPools.length)
+      : options.fontWeights
+        ? weightedPools.length
+        : MAX_ACTIVE_FALLING_FONTS
+  const activePools =
+    weightedPools.length > activeLimit
+      ? shuffle([...weightedPools], rand).slice(0, activeLimit)
+      : weightedPools
+
   const fontPlan = shuffle(
     [
-      ...weightedPools.slice(0, count).map((pool) => pool.id),
-      ...Array.from({ length: Math.max(0, count - weightedPools.length) }, () =>
-        chooseWeighted(weightedPools, rand).id,
+      ...activePools.slice(0, count).map((pool) => pool.id),
+      ...Array.from({ length: Math.max(0, count - activePools.length) }, () =>
+        chooseWeighted(activePools, rand).id,
       ),
     ],
     rand,
@@ -413,7 +429,7 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
 
   return Array.from({ length: count }, (_, id) => {
     const fontId = fontPlan[id]
-    const pool = weightedPools.find((entry) => entry.id === fontId)!
+    const pool = activePools.find((entry) => entry.id === fontId)!
     const lane = lanesById.get(glyphLaneIds[id])!
     const fontLimits = laneFontLimits.get(lane.id)!
     const size = glyphSizes[id]

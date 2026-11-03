@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpen, Heart, PenLine, SlidersHorizontal, Type } from 'lucide-vue-next'
+import { BookOpen, PenLine, SlidersHorizontal, Type } from 'lucide-vue-next'
 
 /**
  * 赏字的工具条。
@@ -13,13 +13,10 @@ export type StudioTool =
   | 'texts'
   | 'typography'
   | 'write'
-  | 'bookmarks'
 
 defineProps<{
   /** 当前打开的面板，用于高亮 */
   active: StudioTool | null
-  /** 已收藏数量，0 时不显示角标 */
-  bookmarkCount?: number
 }>()
 
 const emit = defineEmits<{ open: [tool: StudioTool] }>()
@@ -29,7 +26,6 @@ const tools = [
   { id: 'texts' as const, icon: BookOpen, label: '文选', glyph: '文' },
   { id: 'typography' as const, icon: SlidersHorizontal, label: '版式', glyph: '式' },
   { id: 'write' as const, icon: PenLine, label: '题写', glyph: '写' },
-  { id: 'bookmarks' as const, icon: Heart, label: '收藏', glyph: '笺' },
 ]
 </script>
 
@@ -46,13 +42,6 @@ const tools = [
     >
       <span class="tools__glyph" aria-hidden="true">{{ tool.glyph }}</span>
       <span class="tools__label">{{ tool.label }}</span>
-      <span
-        v-if="tool.id === 'bookmarks' && bookmarkCount"
-        class="tools__count"
-        :aria-label="`已收藏 ${bookmarkCount} 项`"
-      >
-        {{ bookmarkCount }}
-      </span>
     </button>
   </nav>
 </template>
@@ -108,22 +97,6 @@ const tools = [
     letter-spacing: 0.1em;
     color: inherit;
   }
-
-  &__count {
-    position: absolute;
-    top: 4px;
-    right: 9px;
-    min-width: 15px;
-    height: 15px;
-    padding: 0 4px;
-    border-radius: var(--zz-radius-pill);
-    background: var(--zz-accent);
-    color: var(--zz-paper-ui);
-    font-family: var(--zz-font-sans);
-    font-size: 9px;
-    line-height: 15px;
-    text-align: center;
-  }
 }
 
 /* ---- 矮屏：进一步压缩，保住「一屏放下」 ---- */
@@ -165,12 +138,6 @@ const tools = [
     &__label {
       font-size: 10px;
       letter-spacing: 0.06em;
-    }
-
-    &__count {
-      top: 2px;
-      right: 50%;
-      transform: translateX(18px);
     }
   }
 }
