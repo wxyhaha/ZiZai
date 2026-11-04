@@ -379,7 +379,11 @@ const creaseSide = computed<'left' | 'right'>(() => {
 
     <!-- 竖排正文 -->
     <div v-else class="sheet__inner sheet__inner--vertical">
-      <div class="sheet__vertical-flow" aria-label="竖排正文">
+      <div
+        class="sheet__vertical-flow"
+        :class="{ 'sheet__vertical-flow--poetry': props.category === '诗' || props.category === '词' }"
+        aria-label="竖排正文"
+      >
         <div
           v-for="(column, index) in props.page.columns"
           :key="`${column.kind}-${index}`"
@@ -622,6 +626,14 @@ const creaseSide = computed<'left' | 'right'>(() => {
     margin-left: auto;
     overflow: hidden;
     font-family: var(--reading-font);
+
+    &--poetry {
+      .sheet__column--body,
+      .sheet__column--title,
+      .sheet__column--meta {
+        text-align: center;
+      }
+    }
   }
 
   &__column {

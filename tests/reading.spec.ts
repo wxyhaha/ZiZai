@@ -8,6 +8,8 @@ import FontPickerPanel from '@/components/studio/FontPickerPanel.vue'
 import TextPickerPanel from '@/components/studio/TextPickerPanel.vue'
 import TypographyPanel from '@/components/studio/TypographyPanel.vue'
 import { useReadingState, CUSTOM_TEXT_LIMIT } from '@/composables/useReadingState'
+import ReadingSheet from '@/components/studio/ReadingSheet.vue'
+import type { BookPage } from '@/composables/usePagination'
 import { fonts } from '@/data/fonts'
 import { texts, defaultTextId } from '@/data/texts'
 
@@ -275,5 +277,56 @@ describe('阅读状态', () => {
     setCharVariant('simplified')
     expect(activeText.value.title).toBe('黄鹤楼咏怀')
     expect(activeText.value.author).toBe('江上客')
+  })
+
+  it('书本竖排诗词排版：诗词正文列启用 vertical-flow--poetry 上下垂直居中样式，散文保持顶格流式', () => {
+    const dummyPage: BookPage = {
+      index: 0,
+      hasHeader: true,
+      columns: [
+        { kind: 'title', text: '观沧海', width: 32 },
+        { kind: 'meta', text: '汉·曹操', width: 20 },
+        { kind: 'body', text: '东临碣石，以观沧海。', width: 32 },
+      ],
+      paragraphs: [],
+    }
+
+    const wrapperPoem = mount(ReadingSheet, {
+      props: {
+        page: dummyPage,
+        title: '观沧海',
+        author: '曹操',
+        era: '汉',
+        category: '诗',
+        fontFamily: 'Huawen Mingchao',
+        layout: 'vertical',
+        fontSize: 20,
+        lineHeight: 1.6,
+        letterSpacing: 0.02,
+        contentWidth: 300,
+        pagePosition: 'first',
+        single: true,
+      },
+    })
+    expect(wrapperPoem.find('.sheet__vertical-flow--poetry').exists()).toBe(true)
+
+    const wrapperProse = mount(ReadingSheet, {
+      props: {
+        page: dummyPage,
+        title: '岳阳楼记',
+        author: '范仲淹',
+        era: '宋',
+        category: '散文',
+        fontFamily: 'Huawen Mingchao',
+        layout: 'vertical',
+        fontSize: 20,
+        lineHeight: 1.6,
+        letterSpacing: 0.02,
+        contentWidth: 300,
+        pagePosition: 'first',
+        single: true,
+      },
+    })
+    expect(wrapperProse.find('.sheet__vertical-flow--poetry').exists()).toBe(false)
   })
 })

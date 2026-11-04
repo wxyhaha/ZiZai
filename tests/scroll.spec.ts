@@ -98,6 +98,7 @@ describe('连续手卷排版', () => {
 
     const poetryBodyLarge = wrapperLarge.find('.scroll-body--poetry')
     expect(poetryBodyLarge.exists()).toBe(true)
+    expect(wrapperLarge.find('.scroll-heading--poetry').exists()).toBe(true)
 
     const colsLarge = wrapperLarge.findAll('.scroll-column')
     expect(colsLarge).toHaveLength(4)
@@ -126,5 +127,21 @@ describe('连续手卷排版', () => {
     expect(colsSmall[0].text()).toContain('海上明月共潮生')
     expect(colsSmall[1].text()).toContain('滟滟随波千万里')
     expect(colsSmall[1].text()).toContain('何处春江无月明')
+
+    // 3. 散文模式下不启用诗词居中与独立列结构
+    const wrapperProse = mount(ScrollViewer, {
+      props: {
+        title: '岳阳楼记',
+        author: '范仲淹',
+        era: '宋',
+        category: '散文',
+        paragraphs: ['庆历四年春，滕子京谪守巴陵郡。'],
+        font,
+        fontSize: 32,
+        paperTheme: 'white',
+      },
+    })
+    expect(wrapperProse.find('.scroll-heading--poetry').exists()).toBe(false)
+    expect(wrapperProse.find('.scroll-body--poetry').exists()).toBe(false)
   })
 })

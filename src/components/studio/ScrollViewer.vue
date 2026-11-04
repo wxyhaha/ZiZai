@@ -181,7 +181,7 @@ function onKey(event: KeyboardEvent) {
           :data-script="rules.script.id" :aria-label="title"
         >
           <div class="scroll-paper">
-            <header class="scroll-heading">
+            <header class="scroll-heading" :class="{ 'scroll-heading--poetry': isPoetry }">
               <h1>{{ title }}</h1>
               <p>{{ era ? `${era} · ` : '' }}{{ author }}</p>
             </header>
@@ -281,6 +281,13 @@ function onKey(event: KeyboardEvent) {
   flex: none; margin-left: 68px; font-family: var(--scroll-font); position: relative;
   h1 { font-size: calc(var(--scroll-size) * 1.35); font-weight: 400; letter-spacing: .12em; line-height: 1.7; }
   p { font-size: 15px; letter-spacing: .15em; margin-right: 15px; color: var(--zz-ink-soft); }
+  &--poetry {
+    height: 100%;
+    h1, p {
+      height: 100%;
+      text-align: center;
+    }
+  }
 }
 .scroll-body {
   flex: none; height: 100%; font-family: var(--scroll-font); font-size: var(--scroll-size);
@@ -290,8 +297,16 @@ function onKey(event: KeyboardEvent) {
 .scroll-paragraph { margin: 0; }
 .scroll-paragraph:last-child { margin-left: 0; }
 .scroll-body--poetry {
+  height: 100%;
   white-space: nowrap;
   overflow-wrap: normal;
+  .scroll-stanza {
+    height: 100%;
+  }
+  .scroll-column {
+    height: 100%;
+    text-align: center;
+  }
 }
 .scroll-stanza {
   display: block;
