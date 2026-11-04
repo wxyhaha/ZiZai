@@ -102,6 +102,7 @@ onMounted(() => {
           v-if="mode === 'scroll'"
           :title="activeText.title" :author="activeText.author" :era="activeText.era"
           :paragraphs="activeText.paragraphs" :font="activeFont" :font-size="scrollSize" :paper-theme="scrollPaper"
+          :category="activeText.category"
         />
         <BookViewer
           v-else
@@ -109,6 +110,7 @@ onMounted(() => {
           :author="activeText.author"
           :era="activeText.era"
           :paragraphs="activeText.paragraphs"
+          :category="activeText.category"
           :font-family="activeFont.family"
           :layout="state.layout"
           :font-size="state.fontSize"

@@ -196,4 +196,65 @@ describe('书页分页', () => {
     const longPage1Lines = longPages[0].paragraphs[0].text.split('\n').length
     expect(longPage1Lines).toBeLessThan(shortPage1Lines)
   })
+
+  it('诗歌竖排自适应：高度充裕时一联一行，高度受限时单句成列，杜绝字词腰斩', () => {
+    // 1. 高度充裕情景：五言两联，availableHeight = 350 - 86 = 264px
+    // 一联 12 个字（含标点）* 12px = 144px <= 264px -> 一联一行
+    const poemAmple = input({
+      title: '山居秋暝',
+      category: '诗',
+      layout: 'vertical',
+      paragraphs: ['空山新雨后，天气晚来秋。明月松间照，清泉石上流。'],
+      fontSize: 12,
+      pageHeight: 350,
+      pageWidth: 400,
+      measureCharacter: () => 12,
+    })
+    const amplePages = paginateText(poemAmple)
+    const ampleBodyCols = amplePages.flatMap((p) => p.columns).filter((c) => c.kind === 'body')
+    expect(ampleBodyCols).toHaveLength(2)
+    expect(ampleBodyCols[0].text).toBe('空山新雨后，天气晚来秋。')
+    expect(ampleBodyCols[1].text).toBe('明月松间照，清泉石上流。')
+
+    // 2. 高度受限情景：字号调大到 20px，availableHeight = 280 - 86 = 194px
+    // 一联 12 个字 * 20px = 240px > 194px -> 自动降级为单句成列
+    // 单句 6 个字 * 20px = 120px <= 194px -> 单句成列，出句对句各一列
+    const poemRestricted = input({
+      title: '山居秋暝',
+      category: '诗',
+      layout: 'vertical',
+      paragraphs: ['空山新雨后，天气晚来秋。明月松间照，清泉石上流。'],
+      fontSize: 20,
+      pageHeight: 280,
+      pageWidth: 500,
+      measureCharacter: () => 20,
+    })
+    const restrictedPages = paginateText(poemRestricted)
+    const restrictedBodyCols = restrictedPages.flatMap((p) => p.columns).filter((c) => c.kind === 'body')
+    expect(restrictedBodyCols).toHaveLength(4)
+    expect(restrictedBodyCols[0].text).toBe('空山新雨后，')
+    expect(restrictedBodyCols[1].text).toBe('天气晚来秋。')
+    expect(restrictedBodyCols[2].text).toBe('明月松间照，')
+    expect(restrictedBodyCols[3].text).toBe('清泉石上流。')
+
+    // 3. 全文文字 100% 完整保留，字词绝不腰斩
+    expect(restrictedBodyCols.map((c) => c.text).join('')).toBe(poemRestricted.paragraphs[0])
+  })
+
+  it('诗歌横排自适应：诗句不采用散文首行缩进，且出句对句按韵律自适应排布', () => {
+    const poem = input({
+      title: '春江花月夜',
+      category: '诗',
+      layout: 'horizontal',
+      paragraphs: ['春江潮水连海平，海上明月共潮生。', '滟滟随波千万里，何处春江无月明！'],
+      fontSize: 14,
+      contentWidth: 300,
+      pageHeight: 400,
+      measureCharacter: () => 14,
+    })
+    const pages = paginateText(poem)
+    expect(pages[0].paragraphs.every((p) => p.indent === false)).toBe(true)
+    const allLines = pages.flatMap((p) => p.paragraphs).flatMap((p) => p.text.split('\n'))
+    expect(allLines.join('')).toBe(poem.paragraphs.join(''))
+  })
 })

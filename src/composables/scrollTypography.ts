@@ -29,3 +29,21 @@ export function scrollSegments(source: string, style: PunctuationStyleId) {
   if (run) segments.push({ text: run, mark: '' })
   return segments
 }
+
+/**
+ * 测量卷轴单列文字高度（像素）
+ * 古代标点附挂字侧不占字方；现代标点每个占 1em
+ */
+export function measureScrollColumnHeight(
+  text: string,
+  fontSize: number,
+  punctuationStyle: PunctuationStyleId,
+): number {
+  const chars = Array.from(text)
+  const isAncient = punctuationStyle !== 'modern'
+  const charCount = isAncient
+    ? chars.filter((c) => !/[，。、；：？！]/.test(c)).length
+    : chars.length
+  return charCount * fontSize * 1.015
+}
+

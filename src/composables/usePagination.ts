@@ -1,4 +1,4 @@
-import type { LayoutMode } from '@/types'
+import type { LayoutMode, TextCategory } from '@/types'
 
 export interface PageParagraph {
   text: string
@@ -36,6 +36,7 @@ export interface PaginationInput {
   pageWidth: number
   pageHeight: number
   measureCharacter?: (character: string, fontSize: number, fontFamily: string) => number
+  category?: TextCategory
 }
 
 const HORIZONTAL_INLINE_PADDING = 112
@@ -130,6 +131,87 @@ export function estimateTitleBlockHeight(input: PaginationInput, width: number):
   return Math.round(titleHeight + metaHeight + headMarginBottom)
 }
 
+/**
+ * 将诗词段落切分为天然诗句（以逗号、句号、感叹号、问号、分号为界，保留标点）
+ */
+export function splitIntoPoetryVerses(paragraph: string): string[] {
+  const verses: string[] = []
+  let current = ''
+  const clauseEnds = new Set(['，', '。', '！', '？', '；', '、', '!', '?', ';', '\n'])
+  const chars = Array.from(paragraph)
+
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i]
+    if (ch === '\r') continue
+    current += ch
+    if (clauseEnds.has(ch)) {
+      // 包含后续紧跟的闭引号或闭括号
+      while (
+        i + 1 < chars.length &&
+        (chars[i + 1] === '”' ||
+          chars[i + 1] === '’' ||
+          chars[i + 1] === '』' ||
+          chars[i + 1] === '」' ||
+          chars[i + 1] === '）' ||
+          chars[i + 1] === '》')
+      ) {
+        i++
+        current += chars[i]
+      }
+      if (current.trim()) {
+        verses.push(current.trim())
+      }
+      current = ''
+    }
+  }
+  if (current.trim()) {
+    verses.push(current.trim())
+  }
+  return verses
+}
+
+/**
+ * 将诗句按对仗/停顿聚合成对仗联（两两配对，或遇到句号/感叹号/问号截断成完整联）
+ */
+export function groupIntoCouplets(verses: string[]): string[] {
+  const couplets: string[] = []
+  let buffer: string[] = []
+
+  const isSentenceEnd = (verse: string) => {
+    return /[。！？；.!?][”’』」）》]?$/.test(verse.trim())
+  }
+
+  for (let i = 0; i < verses.length; i++) {
+    const v = verses[i]
+    buffer.push(v)
+
+    if (isSentenceEnd(v) || buffer.length >= 2 || i === verses.length - 1) {
+      couplets.push(buffer.join(''))
+      buffer = []
+    }
+  }
+
+  if (buffer.length > 0) {
+    couplets.push(buffer.join(''))
+  }
+
+  return couplets
+}
+
+/**
+ * 计算竖排单列文字的高度
+ */
+export function measureVerticalTextHeight(
+  text: string,
+  input: PaginationInput,
+  fontSize = input.fontSize,
+  trackingEm = input.letterSpacing,
+): number {
+  const tracking = trackingEm * fontSize
+  const chars = characters(text)
+  return chars.reduce((sum, ch) => sum + measure(input, ch, fontSize) + tracking, 0)
+}
+
 export function wrapHorizontal(text: string, input: PaginationInput, width: number): string[] {
   const chars = characters(text)
   if (chars.length === 0) return ['']
@@ -190,9 +272,22 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
   const pages = [createPage(0)]
   let usedHeight = 0
   let hasPreviousParagraph = false
+  const isPoetry = input.category === '诗' || input.category === '词'
 
   input.paragraphs.forEach((paragraph, paragraphIndex) => {
-    const lines = wrapHorizontal(paragraph, input, textWidth)
+    let lines: string[]
+    if (isPoetry) {
+      const verses = splitIntoPoetryVerses(paragraph)
+      const couplets = groupIntoCouplets(verses)
+      const fitsCouplets = couplets.every((c) => {
+        const tracking = input.letterSpacing * input.fontSize
+        const w = Array.from(c).reduce((sum, ch) => sum + measure(input, ch) + tracking, 0)
+        return w <= textWidth
+      })
+      lines = fitsCouplets ? couplets : verses
+    } else {
+      lines = wrapHorizontal(paragraph, input, textWidth)
+    }
 
     lines.forEach((line, lineIndex) => {
       let page = pages[pages.length - 1]
@@ -219,7 +314,7 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
       } else {
         page.paragraphs.push({
           text: line,
-          indent: firstLine,
+          indent: isPoetry ? false : firstLine,
           paragraphEnd,
           paragraphIndex,
         })
@@ -319,15 +414,64 @@ function paginateVertical(input: PaginationInput): BookPage[] {
     })
   }
 
-  input.paragraphs.forEach((paragraph, paragraphIndex) => {
-    if (paragraphIndex > 0) {
-      const current = pages[pages.length - 1]
-      if (current.columns.length > 0) append({ kind: 'gap', text: '', width: input.fontSize * 1.5 })
-    }
-    splitVertical(paragraph, input).forEach((text) => {
-      append({ kind: 'body', text, width: bodyColumnWidth })
+  const isPoetry = input.category === '诗' || input.category === '词'
+  const availableHeight = Math.max(
+    input.fontSize,
+    input.pageHeight - VERTICAL_BLOCK_PADDING,
+  )
+
+  if (isPoetry) {
+    const parsed = input.paragraphs.map((p) => {
+      const verses = splitIntoPoetryVerses(p)
+      const couplets = groupIntoCouplets(verses)
+      return { p, verses, couplets }
     })
-  })
+
+    const allCouplets = parsed.flatMap((item) => item.couplets)
+    // 核心判定规则：如果字体大小可以一联一行，就一联一行；如果只能做到单句成列，就单句成列
+    const canFitCouplets =
+      allCouplets.length > 0 &&
+      allCouplets.every((c) => measureVerticalTextHeight(c, input) <= availableHeight)
+
+    parsed.forEach((item, pIndex) => {
+      if (pIndex > 0) {
+        const current = pages[pages.length - 1]
+        if (current.columns.length > 0) {
+          append({ kind: 'gap', text: '', width: input.fontSize * 1.0 })
+        }
+      }
+
+      if (canFitCouplets) {
+        // 一联一行
+        item.couplets.forEach((couplet) => {
+          append({ kind: 'body', text: couplet, width: bodyColumnWidth })
+        })
+      } else {
+        // 单句成列
+        item.verses.forEach((verse) => {
+          const vHeight = measureVerticalTextHeight(verse, input)
+          if (vHeight <= availableHeight) {
+            append({ kind: 'body', text: verse, width: bodyColumnWidth })
+          } else {
+            splitVertical(verse, input).forEach((text) => {
+              append({ kind: 'body', text, width: bodyColumnWidth })
+            })
+          }
+        })
+      }
+    })
+  } else {
+    // 散文流式
+    input.paragraphs.forEach((paragraph, paragraphIndex) => {
+      if (paragraphIndex > 0) {
+        const current = pages[pages.length - 1]
+        if (current.columns.length > 0) append({ kind: 'gap', text: '', width: input.fontSize * 1.5 })
+      }
+      splitVertical(paragraph, input).forEach((text) => {
+        append({ kind: 'body', text, width: bodyColumnWidth })
+      })
+    })
+  }
 
   return pages
 }

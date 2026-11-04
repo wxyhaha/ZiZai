@@ -74,4 +74,57 @@ describe('连续手卷排版', () => {
     const viewer = wrapper.find('.scroll-viewer')
     expect(viewer.attributes('style')).toContain('--scroll-leading: 1.15')
   })
+
+  it('卷轴模式诗词排版：55px大字规制自适应单句成列，小字规制一联一行，杜绝字词腰斩', () => {
+    const font = fonts[0]!
+    const poemParagraphs = [
+      '春江潮水连海平，海上明月共潮生。',
+      '滟滟随波千万里，何处春江无月明！',
+    ]
+
+    // 1. 55px 大字号情景（在 600px 默认可用高度下，一联 14 字超高，自适应降级为单句成列）
+    const wrapperLarge = mount(ScrollViewer, {
+      props: {
+        title: '春江花月夜',
+        author: '张若虚',
+        era: '唐',
+        category: '诗',
+        paragraphs: poemParagraphs,
+        font,
+        fontSize: 55,
+        paperTheme: 'white',
+      },
+    })
+
+    const poetryBodyLarge = wrapperLarge.find('.scroll-body--poetry')
+    expect(poetryBodyLarge.exists()).toBe(true)
+
+    const colsLarge = wrapperLarge.findAll('.scroll-column')
+    expect(colsLarge).toHaveLength(4)
+    expect(colsLarge[0].text()).toContain('春江潮水连海平')
+    expect(colsLarge[1].text()).toContain('海上明月共潮生')
+    expect(colsLarge[2].text()).toContain('滟滟随波千万里')
+    expect(colsLarge[3].text()).toContain('何处春江无月明')
+
+    // 2. 20px 小字号情景（一联 14 字仅需 ~280px，600px 高度充裕，自适应采用一联一行）
+    const wrapperSmall = mount(ScrollViewer, {
+      props: {
+        title: '春江花月夜',
+        author: '张若虚',
+        era: '唐',
+        category: '诗',
+        paragraphs: poemParagraphs,
+        font,
+        fontSize: 20,
+        paperTheme: 'white',
+      },
+    })
+
+    const colsSmall = wrapperSmall.findAll('.scroll-column')
+    expect(colsSmall).toHaveLength(2)
+    expect(colsSmall[0].text()).toContain('春江潮水连海平')
+    expect(colsSmall[0].text()).toContain('海上明月共潮生')
+    expect(colsSmall[1].text()).toContain('滟滟随波千万里')
+    expect(colsSmall[1].text()).toContain('何处春江无月明')
+  })
 })

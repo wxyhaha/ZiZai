@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import type { LayoutMode } from '@/types'
+import type { LayoutMode, TextCategory } from '@/types'
 import { defaultPaperThemeId, type PaperThemeId } from '@/data/paperThemes'
 import {
   defaultPunctuationStyleId,
@@ -40,6 +40,7 @@ const props = withDefaults(
     letterSpacing: number
     contentWidth: number
     isCustom?: boolean
+    category?: TextCategory
     hasActiveModal?: boolean
     paperTheme?: PaperThemeId
     punctuationStyle?: PunctuationStyleId
@@ -50,6 +51,7 @@ const props = withDefaults(
   }>(),
   {
     era: undefined,
+    category: undefined,
     isCustom: false,
     hasActiveModal: false,
     paperTheme: defaultPaperThemeId,
@@ -150,6 +152,7 @@ function getPaginationInput(
     author: props.author,
     era: props.era,
     paragraphs: effectiveParagraphs.value,
+    category: props.category,
     layout: props.layout,
     fontFamily: props.fontFamily,
     fontSize: props.fontSize,

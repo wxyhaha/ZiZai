@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { LayoutMode } from '@/types'
+import type { LayoutMode, TextCategory } from '@/types'
 import type { BookPage } from '@/composables/usePagination'
 import {
   getPaperTheme,
@@ -34,6 +34,7 @@ const props = withDefaults(
     letterSpacing: number
     contentWidth: number
     isCustom?: boolean
+    category?: TextCategory
     pagePosition: 'first' | 'second'
     single: boolean
     paperTheme?: PaperThemeId
@@ -45,6 +46,7 @@ const props = withDefaults(
   }>(),
   {
     era: undefined,
+    category: undefined,
     isCustom: false,
     paperTheme: defaultPaperThemeId,
     punctuationStyle: defaultPunctuationStyleId,
@@ -259,7 +261,7 @@ const creaseSide = computed<'left' | 'right'>(() => {
         </p>
       </header>
 
-      <div class="prose">
+      <div class="prose" :class="{ 'prose--poetry': props.category === '诗' || props.category === '词' }">
         <p
           v-for="(paragraph, index) in props.page.paragraphs"
           :key="`${paragraph.paragraphIndex}-${index}`"
@@ -703,6 +705,19 @@ const creaseSide = computed<'left' | 'right'>(() => {
 
   p:last-child {
     margin-bottom: 0;
+  }
+
+  &--poetry {
+    text-align: center;
+
+    p {
+      white-space: pre-line;
+      line-height: calc(var(--reading-leading) * 1.25);
+    }
+
+    p.prose__paragraph--end {
+      margin-bottom: 1.6em;
+    }
   }
 }
 

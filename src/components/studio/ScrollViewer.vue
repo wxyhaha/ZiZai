@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { FontEntryWithAssets } from '@/data/fonts'
+import type { TextCategory } from '@/types'
 import { getPaperTheme, type PaperThemeId } from '@/data/paperThemes'
 import { ensureFontLoaded } from '@/composables/useFontLoading'
-import { scrollSegments, scrollTypography } from '@/composables/scrollTypography'
+import {
+  measureScrollColumnHeight,
+  scrollSegments,
+  scrollTypography,
+} from '@/composables/scrollTypography'
+import {
+  groupIntoCouplets,
+  splitIntoPoetryVerses,
+} from '@/composables/usePagination'
 
 const props = defineProps<{
   title: string
@@ -13,11 +22,84 @@ const props = defineProps<{
   font: FontEntryWithAssets
   fontSize: number
   paperTheme: PaperThemeId
+  category?: TextCategory
 }>()
 const viewport = ref<HTMLElement>()
+const scrollBodyRef = ref<HTMLElement>()
 const status = ref<'loading' | 'ready' | 'error'>('loading')
 const rules = computed(() => scrollTypography(props.era, props.font.id, props.font.styleTag))
 const paragraphs = computed(() => props.paragraphs.map(p => scrollSegments(p, rules.value.punctuation.id)))
+
+const isPoetry = computed(() => props.category === '诗' || props.category === '词')
+const measuredHeight = ref<number | null>(null)
+
+const availableHeight = computed(() => {
+  if (measuredHeight.value && measuredHeight.value > 0) {
+    return measuredHeight.value
+  }
+  if (typeof window !== 'undefined' && window.innerHeight) {
+    return Math.max(200, window.innerHeight - 220)
+  }
+  return 600
+})
+
+function updateMeasuredHeight() {
+  if (scrollBodyRef.value && scrollBodyRef.value.clientHeight > 0) {
+    measuredHeight.value = scrollBodyRef.value.clientHeight
+  } else if (viewport.value && viewport.value.clientHeight > 0) {
+    measuredHeight.value = Math.max(200, viewport.value.clientHeight - 96)
+  }
+}
+
+interface PoetryColumnItem {
+  text: string
+  segments: { text: string; mark: string }[]
+}
+
+const poetryStanzas = computed<PoetryColumnItem[][]>(() => {
+  if (!isPoetry.value) return []
+  const punctId = rules.value.punctuation.id
+
+  const parsed = props.paragraphs.map((p) => {
+    const verses = splitIntoPoetryVerses(p)
+    const couplets = groupIntoCouplets(verses)
+    return { verses, couplets }
+  })
+
+  // 核心判定规则：如果字体大小可以一联一行，就一联一行；如果只能做到单句成列，就单句成列
+  const allCouplets = parsed.flatMap((p) => p.couplets)
+  const canFitCouplets =
+    allCouplets.length > 0 &&
+    allCouplets.every((c) => {
+      const h = measureScrollColumnHeight(c, props.fontSize, punctId)
+      return h <= availableHeight.value
+    })
+
+  return parsed.map((item) => {
+    const cols: string[] = []
+    if (canFitCouplets) {
+      cols.push(...item.couplets)
+    } else {
+      item.verses.forEach((verse) => {
+        const vHeight = measureScrollColumnHeight(verse, props.fontSize, punctId)
+        if (vHeight <= availableHeight.value) {
+          cols.push(verse)
+        } else {
+          const maxChars = Math.max(1, Math.floor(availableHeight.value / (props.fontSize * 1.015)))
+          const chars = Array.from(verse)
+          for (let i = 0; i < chars.length; i += maxChars) {
+            cols.push(chars.slice(i, i + maxChars).join(''))
+          }
+        }
+      })
+    }
+    return cols.map((text) => ({
+      text,
+      segments: scrollSegments(text, punctId),
+    }))
+  })
+})
+
 const scrollLeading = computed(() => {
   // 直接对标 rg-font.netlify.app (1.10) 与 qiji-font.netlify.app (1.14~1.18) 传世古籍与书法法帖行款
   switch (rules.value.script.id) {
@@ -37,16 +119,32 @@ const style = computed(() => ({
   '--scroll-leading': `${scrollLeading.value}`,
 }))
 let generation = 0
-watch(() => [props.font.id, props.title, props.paragraphs] as const, async () => {
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  updateMeasuredHeight()
+  if (typeof ResizeObserver !== 'undefined' && viewport.value) {
+    resizeObserver = new ResizeObserver(() => {
+      updateMeasuredHeight()
+    })
+    resizeObserver.observe(viewport.value)
+  }
+})
+
+watch(() => [props.font.id, props.title, props.paragraphs, props.fontSize] as const, async () => {
   const ticket = ++generation
   status.value = 'loading'
   const ready = await ensureFontLoaded(props.font)
   if (ticket !== generation) return
   status.value = ready ? 'ready' : 'error'
   await nextTick()
+  updateMeasuredHeight()
   if (ticket === generation && viewport.value) viewport.value.scrollLeft = 0
 }, { immediate: true })
-onBeforeUnmount(() => { generation++ })
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  generation++
+})
 
 function onWheel(event: WheelEvent) {
   const el = viewport.value
@@ -87,7 +185,44 @@ function onKey(event: KeyboardEvent) {
               <h1>{{ title }}</h1>
               <p>{{ era ? `${era} · ` : '' }}{{ author }}</p>
             </header>
-            <div class="scroll-body" :class="`scroll-body--${rules.punctuation.symbolType}`">
+
+            <!-- 诗词排版：自适应一联一行或单句成列，各列独立不腰斩 -->
+            <div
+              v-if="isPoetry"
+              ref="scrollBodyRef"
+              class="scroll-body scroll-body--poetry"
+              :class="`scroll-body--${rules.punctuation.symbolType}`"
+            >
+              <div
+                v-for="(stanza, sIndex) in poetryStanzas"
+                :key="sIndex"
+                class="scroll-stanza"
+              >
+                <div
+                  v-for="(col, cIndex) in stanza"
+                  :key="cIndex"
+                  class="scroll-column"
+                >
+                  <template v-for="(segment, i) in col.segments" :key="i">
+                    <span v-if="segment.mark" class="scroll-anchor">{{ segment.text }}<span
+                      class="scroll-mark" :class="{ 'scroll-mark--end': segment.mark === '。' }"
+                    >{{ segment.mark }}</span></span><template
+                      v-else
+                    >
+                      {{ segment.text }}
+                    </template>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- 散文排版：连续流水古风折行 -->
+            <div
+              v-else
+              ref="scrollBodyRef"
+              class="scroll-body"
+              :class="`scroll-body--${rules.punctuation.symbolType}`"
+            >
               <p v-for="(segments, index) in paragraphs" :key="index" class="scroll-paragraph">
                 <template
                   v-for="(segment, i) in segments" :key="i"
@@ -102,6 +237,7 @@ function onKey(event: KeyboardEvent) {
                 </template>
               </p>
             </div>
+
             <div class="scroll-ending" aria-hidden="true">
               <span class="scroll-seal">字在</span>
             </div>
@@ -153,6 +289,25 @@ function onKey(event: KeyboardEvent) {
 }
 .scroll-paragraph { margin: 0; }
 .scroll-paragraph:last-child { margin-left: 0; }
+.scroll-body--poetry {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.scroll-stanza {
+  display: block;
+  margin: 0;
+  margin-left: calc(var(--scroll-size) * 0.85);
+}
+.scroll-stanza:last-child {
+  margin-left: 0;
+}
+.scroll-column {
+  display: block;
+  margin: 0;
+  white-space: nowrap;
+  line-height: var(--scroll-leading);
+  letter-spacing: .015em;
+}
 .scroll-anchor { position: relative; white-space: nowrap; }
 .scroll-mark { position: absolute; top: calc(var(--scroll-size) * .72); left: calc(var(--scroll-size) * .94); width: 1em; height: 1em; font-size: .22em; line-height: 1; letter-spacing: 0; color: transparent; pointer-events: none; }
 .scroll-mark::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: var(--zz-ink-body); }
