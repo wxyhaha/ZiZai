@@ -63,7 +63,7 @@ const poetryStanzas = computed<PoetryColumnItem[][]>(() => {
     return parsePoetryParagraph(p)
   })
 
-  // 核心判定规则：每联若高度充裕则一联一行；若超高则优雅降级为单句成列（绝不腰斩，短分句智能粘连）
+  // 核心判定规则：每联若高度充裕则一联一行；若超高则优雅自适应为单句成列（绝不截断字词，完整一句话自适应入列）
   return parsed.map((coupletUnits) => {
     const cols: string[] = []
     coupletUnits.forEach((unit) => {
@@ -72,20 +72,25 @@ const poetryStanzas = computed<PoetryColumnItem[][]>(() => {
         // 一联一行
         cols.push(unit.text)
       } else {
-        // 单句成列
+        // 高度受限：单句自适应入列（以一句话为不可分割单元，绝不在字词中间截断）
+        let currentCol = ''
         unit.verses.forEach((verse) => {
-          const vHeight = measureScrollColumnHeight(verse, props.fontSize, punctId)
-          if (vHeight <= availableHeight.value) {
-            cols.push(verse)
+          if (!currentCol) {
+            currentCol = verse
           } else {
-            // 极窄视口或超大字号降级：在单句内部折列
-            const maxChars = Math.max(1, Math.floor(availableHeight.value / (props.fontSize * 1.015)))
-            const chars = Array.from(verse)
-            for (let i = 0; i < chars.length; i += maxChars) {
-              cols.push(chars.slice(i, i + maxChars).join(''))
+            const candidate = currentCol + verse
+            const cHeight = measureScrollColumnHeight(candidate, props.fontSize, punctId)
+            if (cHeight <= availableHeight.value) {
+              currentCol = candidate
+            } else {
+              cols.push(currentCol)
+              currentCol = verse
             }
           }
         })
+        if (currentCol) {
+          cols.push(currentCol)
+        }
       }
     })
     return cols.map((text) => ({

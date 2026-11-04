@@ -186,7 +186,8 @@ export function splitIntoPoetryVerses(paragraph: string): string[] {
     rawParts.push(current.trim())
   }
 
-  // 阶段 2：短分句智能粘连（杜绝 <= 3 字短逗孤立成列，如「岑夫子，」「将进酒，」「五花马，」「君不见，」）
+  // 阶段 2：短分句智能粘连（针对连续短逗如「岑夫子，丹丘生，」「五花马，千金裘，」进行对仗粘合；
+  // 领字呼告短句如「君不见，」若后接长句（>=5字）则独立成句，避免句式失衡与超长截断）
   const verses: string[] = []
   let buffer = ''
 
@@ -194,12 +195,22 @@ export function splitIntoPoetryVerses(paragraph: string): string[] {
     const part = rawParts[i]
     buffer += part
     const len = cleanCharCount(buffer)
+    const nextPart = i + 1 < rawParts.length ? rawParts[i + 1] : null
+    const nextLen = nextPart ? cleanCharCount(nextPart) : 0
     const isSentenceEnd = /[。！？；.!?][”’』」）》"']?$/.test(part)
 
-    // 判定是否可形成独立诗句单元：
-    // 1. 已是自然句末（。！？；）且有效汉字 >= 4；或者已到最后片段
-    // 2. 是逗号分割，但有效汉字已达到 >= 4（四言/五言/七言等标准诗句）
-    if ((isSentenceEnd && len >= 4) || len >= 4 || i === rawParts.length - 1) {
+    // 独立断句判定：
+    // 1. 已是自然句终（。！？；）
+    // 2. 有效字数 >= 4 且已是相对完整诗句
+    // 3. 虽字数 <= 3（如「君不见，」），但下一个分句是长句（nextLen >= 5），不可强行合并
+    // 4. 已是最后一个分句
+    const shouldBreak =
+      isSentenceEnd ||
+      len >= 4 ||
+      (nextLen >= 5 && len > 0) ||
+      i === rawParts.length - 1
+
+    if (shouldBreak) {
       verses.push(buffer)
       buffer = ''
     }
@@ -226,7 +237,7 @@ export function parsePoetryParagraph(paragraph: string): PoetryCoupletUnit[] {
     const v = verses[i]
     buffer.push(v)
 
-    if (isSentenceEnd(v) || buffer.length >= 2 || i === verses.length - 1) {
+    if (isSentenceEnd(v) || i === verses.length - 1) {
       couplets.push({
         text: buffer.join(''),
         verses: [...buffer],
@@ -260,7 +271,7 @@ export function groupIntoCouplets(verses: string[]): string[] {
     const v = verses[i]
     buffer.push(v)
 
-    if (isSentenceEnd(v) || buffer.length >= 2 || i === verses.length - 1) {
+    if (isSentenceEnd(v) || i === verses.length - 1) {
       couplets.push(buffer.join(''))
       buffer = []
     }
@@ -518,17 +529,25 @@ function paginateVertical(input: PaginationInput): BookPage[] {
           // 一联一行
           append({ kind: 'body', text: unit.text, width: bodyColumnWidth })
         } else {
-          // 单句成列（绝不腰斩，短逗智能粘连）
+          // 单句成列（绝不截断字词，完整一句话自适应入列）
+          let currentCol = ''
           unit.verses.forEach((verse) => {
-            const vHeight = measureVerticalTextHeight(verse, input)
-            if (vHeight <= availableHeight) {
-              append({ kind: 'body', text: verse, width: bodyColumnWidth })
+            if (!currentCol) {
+              currentCol = verse
             } else {
-              splitVertical(verse, input).forEach((text) => {
-                append({ kind: 'body', text, width: bodyColumnWidth })
-              })
+              const candidate = currentCol + verse
+              const h = measureVerticalTextHeight(candidate, input)
+              if (h <= availableHeight) {
+                currentCol = candidate
+              } else {
+                append({ kind: 'body', text: currentCol, width: bodyColumnWidth })
+                currentCol = verse
+              }
             }
           })
+          if (currentCol) {
+            append({ kind: 'body', text: currentCol, width: bodyColumnWidth })
+          }
         }
       })
     })

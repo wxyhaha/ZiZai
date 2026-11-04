@@ -211,5 +211,23 @@ describe('连续手卷排版', () => {
     expect(allColTextsLarge.some((t) => t === '岑夫子，丹丘生，')).toBe(true)
     expect(allColTextsLarge.some((t) => t === '将进酒，杯莫停。')).toBe(true)
     expect(allColTextsLarge.some((t) => t === '五花马，千金裘，')).toBe(true)
+
+    // 严密断言：杜绝用户截图中出现的「君不见，黄河之水天」/「上来，奔流到海不复回。」字词生硬截断腰斩
+    expect(allColTextsLarge).not.toContain('君不见，黄河之水天')
+    expect(allColTextsLarge.some((t) => t.startsWith('上来'))).toBe(false)
+    expect(allColTextsLarge).not.toContain('君不见，高堂明镜悲')
+    expect(allColTextsLarge.some((t) => t.startsWith('白发'))).toBe(false)
+
+    // 每一列必须是完整一句话（自然分句），出句对句各列完整
+    expect(allColTextsLarge).toContain('君不见，')
+    expect(allColTextsLarge).toContain('黄河之水天上来，')
+    expect(allColTextsLarge).toContain('奔流到海不复回。')
+    expect(allColTextsLarge).toContain('高堂明镜悲白发，')
+    expect(allColTextsLarge).toContain('朝如青丝暮成雪。')
+
+    // 每一列均必须以合法分句标点结尾，绝不允许在汉字词语中间截断
+    for (const col of allColTextsLarge) {
+      expect(/[，。！？；、]$/.test(col)).toBe(true)
+    }
   })
 })
