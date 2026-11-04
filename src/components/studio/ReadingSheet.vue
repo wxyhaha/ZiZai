@@ -628,10 +628,14 @@ const creaseSide = computed<'left' | 'right'>(() => {
     font-family: var(--reading-font);
 
     &--poetry {
-      .sheet__column--body,
-      .sheet__column--title,
-      .sheet__column--meta {
-        text-align: center;
+      height: fit-content;
+      max-height: 100%;
+      margin-top: auto;
+      margin-bottom: auto;
+
+      .sheet__column {
+        height: fit-content;
+        text-align: start;
       }
     }
   }

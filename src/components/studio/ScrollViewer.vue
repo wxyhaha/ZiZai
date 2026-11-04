@@ -282,10 +282,12 @@ function onKey(event: KeyboardEvent) {
   h1 { font-size: calc(var(--scroll-size) * 1.35); font-weight: 400; letter-spacing: .12em; line-height: 1.7; }
   p { font-size: 15px; letter-spacing: .15em; margin-right: 15px; color: var(--zz-ink-soft); }
   &--poetry {
-    height: 100%;
+    align-self: center;
+    height: fit-content;
+    max-height: 100%;
     h1, p {
-      height: 100%;
-      text-align: center;
+      height: fit-content;
+      text-align: start;
     }
   }
 }
@@ -297,15 +299,17 @@ function onKey(event: KeyboardEvent) {
 .scroll-paragraph { margin: 0; }
 .scroll-paragraph:last-child { margin-left: 0; }
 .scroll-body--poetry {
-  height: 100%;
+  align-self: center;
+  height: fit-content;
+  max-height: 100%;
   white-space: nowrap;
   overflow-wrap: normal;
   .scroll-stanza {
-    height: 100%;
+    height: fit-content;
   }
   .scroll-column {
-    height: 100%;
-    text-align: center;
+    height: fit-content;
+    text-align: start;
   }
 }
 .scroll-stanza {
