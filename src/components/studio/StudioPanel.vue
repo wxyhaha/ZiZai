@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   DialogClose,
   DialogContent,
@@ -10,12 +11,14 @@ import {
 } from 'reka-ui'
 
 /**
- * 赏字的侧边抽屉 / 底部面板。
+ * 赏字的侧边抽屉 / 底部面板 / 居中大弹窗。
  *
  * 只负责「容器 + 无障碍」：焦点陷阱、Esc 关闭、点外关闭、焦点返回、
  * 滚动锁定全部由 Reka UI 的 Dialog 保证。视觉完全自绘。
  *
- * 桌面从右侧滑入，手机从底部升起（见 SCSS 的断点）。
+ * 变体支持：
+ * - drawer（默认）：桌面从右侧滑入，手机从底部升起。
+ * - modal：桌面居中展开宽幅大弹窗（min(1120px, 94vw)），手机自适应为高底部抽屉。
  */
 
 const props = withDefaults(
@@ -26,20 +29,34 @@ const props = withDefaults(
     description?: string
     /** 面板宽度上限，桌面端 */
     width?: string
+    /** 面板形态：侧边抽屉 (drawer) 或 居中大弹窗 (modal) */
+    variant?: 'drawer' | 'modal'
   }>(),
-  { description: '', width: 'min(460px, 100vw)' },
+  { description: '', width: undefined, variant: 'drawer' },
 )
 
 const emit = defineEmits<{ 'update:open': [value: boolean] }>()
+
+const panelWidth = computed(() => {
+  if (props.width) return props.width
+  return props.variant === 'modal' ? 'min(1120px, 94vw)' : 'min(460px, 100vw)'
+})
 </script>
 
 <template>
   <DialogRoot :open="props.open" @update:open="(v) => emit('update:open', v)">
     <DialogPortal>
       <DialogOverlay class="panel-overlay" />
-      <DialogContent class="panel" :style="{ '--panel-width': props.width }">
+      <DialogContent
+        class="panel"
+        :class="[`panel--${props.variant}`]"
+        :style="{ '--panel-width': panelWidth }"
+      >
         <header class="panel__head">
-          <DialogTitle class="panel__title">{{ props.title }}</DialogTitle>
+          <div class="panel__head-start">
+            <DialogTitle class="panel__title">{{ props.title }}</DialogTitle>
+            <slot name="title-extra" />
+          </div>
           <DialogClose class="panel__close">
             <span aria-hidden="true">✕</span>
             <span class="zz-sr-only">关闭</span>
@@ -72,7 +89,8 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgb(31 25 20 / 21%);
+  background: rgb(31 25 20 / 25%);
+  backdrop-filter: blur(2px);
 }
 
 .panel {
@@ -88,14 +106,37 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
   border-left: 1px solid var(--zz-line);
   box-shadow: var(--zz-shadow-layer);
 
+  &--modal {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: var(--panel-width);
+    height: min(86vh, 840px);
+    max-height: 86vh;
+    border-radius: var(--zz-radius-md);
+    border: 1px solid var(--zz-line);
+    box-shadow:
+      0 24px 60px -12px rgba(31, 25, 20, 0.32),
+      0 0 0 1px rgba(180, 160, 140, 0.2);
+  }
+
   &__head {
     flex: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--zz-space-4);
-    padding: 26px 30px 18px;
+    padding: 24px 30px 18px;
     border-bottom: 1px solid var(--zz-line);
+  }
+
+  &__head-start {
+    display: flex;
+    align-items: baseline;
+    gap: var(--zz-space-3);
+    flex-wrap: wrap;
   }
 
   &__title {
@@ -115,6 +156,7 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
     border-radius: var(--zz-radius-sm);
     color: var(--zz-muted);
     font-size: 14px;
+    transition: background 0.15s ease, color 0.15s ease;
 
     &:hover {
       background: var(--zz-paper-deep);
@@ -148,7 +190,7 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
   }
 }
 
-/* ---- 手机：改为底部面板 ---- */
+/* ---- 手机：自适应为底部面板 ---- */
 @include bp.below(bp.$bp-mobile) {
   .panel {
     top: auto;
@@ -161,6 +203,21 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
     border-left: 0;
     border-top: 1px solid var(--zz-line);
     border-radius: var(--zz-radius-md) var(--zz-radius-md) 0 0;
+
+    &--modal {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      transform: none;
+      width: 100%;
+      height: 88dvh;
+      max-height: 88dvh;
+      border-radius: var(--zz-radius-md) var(--zz-radius-md) 0 0;
+      border-left: 0;
+      border-right: 0;
+      border-bottom: 0;
+    }
 
     &__head {
       padding: 18px 20px 14px;

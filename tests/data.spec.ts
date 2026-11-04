@@ -137,4 +137,37 @@ describe('古文目录', () => {
   it('未知 id 回退到第一篇', () => {
     expect(getText('not-a-real-text').id).toBe(texts[0].id)
   })
+
+  it('典籍总数达到百篇以上，且完整覆盖先秦、魏晋、唐、宋元、明清五大时期', () => {
+    expect(texts.length).toBeGreaterThanOrEqual(100)
+    const eraGroups = new Set(texts.map((t) => t.eraGroup))
+    expect(eraGroups).toEqual(new Set(['先秦两汉', '魏晋', '唐代', '宋元', '明清现代']))
+  })
+
+  it('每篇典籍均具备总字数统计与篇幅区间分类', () => {
+    for (const text of texts) {
+      expect(text.charCount, `${text.id} 缺少字数`).toBeGreaterThan(0)
+      expect(['short', 'medium', 'long'], `${text.id} 篇幅分类非法`).toContain(text.lengthTier)
+      if (text.lengthTier === 'short') {
+        expect(text.charCount!).toBeLessThan(150)
+      } else if (text.lengthTier === 'medium') {
+        expect(text.charCount!).toBeGreaterThanOrEqual(150)
+        expect(text.charCount!).toBeLessThanOrEqual(600)
+      } else {
+        expect(text.charCount!).toBeGreaterThan(600)
+      }
+    }
+  })
+
+  it('每篇典籍均配备审校繁体正字，且繁简体段落结构严格对应', () => {
+    for (const text of texts) {
+      expect(text.titleTrad, `${text.id} 缺少繁体标题`).toBeTruthy()
+      expect(text.authorTrad, `${text.id} 缺少繁体作者`).toBeTruthy()
+      expect(text.paragraphsTrad, `${text.id} 缺少繁体段落`).toBeTruthy()
+      expect(text.paragraphsTrad!.length, `${text.id} 繁简体段落数不一致`).toBe(text.paragraphs.length)
+      for (const [idx, pTrad] of text.paragraphsTrad!.entries()) {
+        expect(pTrad.length, `${text.id} 第 ${idx} 段繁体为空`).toBeGreaterThan(0)
+      }
+    }
+  })
 })

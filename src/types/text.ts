@@ -29,4 +29,10 @@ export interface TextEntry {
   summaryTrad?: string
   /** 是否为短章（诗、词、短赋），影响默认版式建议 */
   isShortForm?: boolean
+  /** 全文总字数（不含标点） */
+  charCount?: number
+  /** 篇幅区间：短制 (<150字)、中篇 (150-600字)、长篇 (>600字) */
+  lengthTier?: 'short' | 'medium' | 'long'
+  /** 大朝代时期聚合分组 */
+  eraGroup?: '先秦两汉' | '魏晋' | '唐代' | '宋元' | '明清现代'
 }

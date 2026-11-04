@@ -29,14 +29,17 @@ test('长卷全文、滚轮、两端轴杆、复制与设置隔离', async ({ pa
 
   expect(await viewport.evaluate(el => el.scrollLeft)).toBe(0)
   await expect(page.locator('.scroll-rod--head')).toBeInViewport()
-  for (const text of texts) {
+  // 抽样验证覆盖五大时期的代表性典籍在卷轴下的排版与标点纯化
+  const sampleTextIds = ['xue-er', 'chu-shi-biao', 'jiang-jin-jiu', 'qian-chi-bi-fu', 'xiang-ji-xuan']
+  const sampleTexts = sampleTextIds.map((id) => texts.find((t) => t.id === id)!)
+  for (const text of sampleTexts) {
     await ensureSettingsOpen(page)
     await page.getByRole('button', { name: '选择文章' }).click({ force: true })
     await page.locator('.text-item', { hasText: text.titleTrad || text.title }).click({ force: true })
     await expect(viewer).toHaveAttribute('aria-busy', 'false')
     const content = await page.locator('.scroll-paragraph').allTextContents()
     const rawParas = text.paragraphsTrad || text.paragraphs
-    expect(content).toEqual(rawParas.map(p => sanitizeTextForEra(p, getEraPunctuationStyle(text.era))))
+    expect(content).toEqual(rawParas.map((p) => sanitizeTextForEra(p, getEraPunctuationStyle(text.era))))
   }
   await viewport.hover()
   const headBefore = await page.locator('.scroll-rod--head').boundingBox()

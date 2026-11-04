@@ -9,7 +9,7 @@ import TextPickerPanel from '@/components/studio/TextPickerPanel.vue'
 import TypographyPanel from '@/components/studio/TypographyPanel.vue'
 import { useReadingState, CUSTOM_TEXT_LIMIT } from '@/composables/useReadingState'
 import { fonts } from '@/data/fonts'
-import { texts } from '@/data/texts'
+import { texts, defaultTextId } from '@/data/texts'
 
 beforeEach(() => {
   useReadingState().resetToDefaults()
@@ -47,11 +47,11 @@ describe('赏字书页', () => {
 
   it('渲染默认作品的标题、作者与首屏正文', async () => {
     const wrapper = await mountStudio()
-    const first = texts[0]
-    expect(wrapper.get('.sheet__title').text()).toBe(first.titleTrad || first.title)
-    expect(wrapper.get('.sheet__meta').text()).toContain(first.authorTrad || first.author)
+    const defaultEntry = texts.find((t) => t.id === defaultTextId)!
+    expect(wrapper.get('.sheet__title').text()).toBe(defaultEntry.titleTrad || defaultEntry.title)
+    expect(wrapper.get('.sheet__meta').text()).toContain(defaultEntry.authorTrad || defaultEntry.author)
     expect(wrapper.findAll('.prose p').length).toBeGreaterThan(0)
-    const firstPara = first.paragraphsTrad?.[0] || first.paragraphs[0]
+    const firstPara = defaultEntry.paragraphsTrad?.[0] || defaultEntry.paragraphs[0]
     expect(wrapper.find('.prose').text()).toContain(firstPara.slice(0, 12))
     wrapper.unmount()
   })

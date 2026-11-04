@@ -8,7 +8,7 @@ import { useReadingState } from '@/composables/useReadingState'
 import ScrollViewer from '@/components/studio/ScrollViewer.vue'
 
 describe('连续手卷排版', () => {
-  it('六篇全文显示层不丢字且不修改原文', () => {
+  it('百篇典籍全文显示层不丢字且不修改原文', () => {
     for (const text of texts) {
       const original = [...text.paragraphs]
       const style = scrollTypography(text.era, 'huawen-mingchao').punctuation.id

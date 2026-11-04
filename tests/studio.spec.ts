@@ -165,9 +165,16 @@ describe('字体图鉴面板', () => {
 })
 
 describe('古文选集面板', () => {
-  async function mountTextPicker() {
+  async function mountTextPicker(overrides: Record<string, unknown> = {}) {
     const wrapper = mount(TextPickerPanel, {
-      props: { open: true, texts, selectedId: texts[0].id, isCustom: false },
+      props: {
+        open: true,
+        texts,
+        selectedId: texts[0].id,
+        isCustom: false,
+        charVariant: 'traditional',
+        ...overrides,
+      },
       attachTo: document.body,
     })
     await nextTick()
@@ -191,6 +198,103 @@ describe('古文选集面板', () => {
         expect(heading, `${title} 被分到了错误的组`).toContain(entry!.category)
       }
     }
+    wrapper.unmount()
+  })
+
+  it('支持简繁双向即时通搜（篇名、作者、朝代与正文千古名句）', async () => {
+    const wrapper = await mountTextPicker()
+    const searchInput = q<HTMLInputElement>('.picker-search__input')
+
+    // 1. 搜简体名句“水波不兴”，匹配苏轼《前赤壁赋》
+    typeInto(searchInput, '水波不兴')
+    await nextTick()
+    const hitCards1 = qa('.text-item')
+    expect(hitCards1.length).toBeGreaterThan(0)
+    expect(hitCards1.some((c) => c.textContent?.includes('前赤壁賦') || c.textContent?.includes('前赤壁赋'))).toBe(true)
+
+    // 2. 搜繁体名句“一蓑煙雨”，匹配苏轼《定风波》
+    typeInto(searchInput, '一蓑煙雨')
+    await nextTick()
+    const hitCards2 = qa('.text-item')
+    expect(hitCards2.length).toBeGreaterThan(0)
+    expect(hitCards2.some((c) => c.textContent?.includes('定風波') || c.textContent?.includes('定风波'))).toBe(true)
+
+    // 3. 搜“陶渊明”通搜作者与正文名句，既命中陶渊明名篇（桃花源记、归去来兮辞等），亦精准命中正文提及「晋陶渊明独爱菊」的《爱莲说》
+    typeInto(searchInput, '陶渊明')
+    await nextTick()
+    const hitCards3 = qa('.text-item')
+    expect(hitCards3.length).toBeGreaterThanOrEqual(4)
+    expect(hitCards3.some((c) => c.textContent?.includes('桃花源記') || c.textContent?.includes('桃花源记'))).toBe(true)
+    expect(hitCards3.some((c) => c.textContent?.includes('愛蓮說') || c.textContent?.includes('爱莲说'))).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('支持朝代、体裁与篇幅多维分类过滤与一键重置', async () => {
+    const wrapper = await mountTextPicker()
+
+    // 1. 筛选朝代为“隋唐五代”
+    const tangBtn = qa<HTMLButtonElement>('.filter-chip').find((b) => b.textContent?.includes('隋唐五代'))!
+    expect(tangBtn).toBeTruthy()
+    tangBtn.click()
+    await nextTick()
+    const tangCards = qa('.text-item')
+    expect(tangCards.length).toBe(texts.filter((t) => t.eraGroup === '唐代').length)
+
+    // 2. 叠加筛选体裁为“辞赋”
+    const fuBtn = qa<HTMLButtonElement>('.filter-chip').find((b) => b.textContent?.includes('辞赋'))!
+    fuBtn.click()
+    await nextTick()
+    const tangFuCards = qa('.text-item')
+    expect(tangFuCards.length).toBe(texts.filter((t) => t.eraGroup === '唐代' && t.category === '赋').length)
+    expect(tangFuCards.some((c) => c.textContent?.includes('阿房宮賦') || c.textContent?.includes('阿房宫赋'))).toBe(true)
+
+    // 3. 点击重置按钮
+    const resetBtn = q<HTMLButtonElement>('.picker-status__reset')
+    resetBtn.click()
+    await nextTick()
+    const allCards = qa('.text-item')
+    expect(allCards.length).toBe(texts.length)
+
+    wrapper.unmount()
+  })
+
+  it('无匹配典籍时展示古典空状态提示与重置操作', async () => {
+    const wrapper = await mountTextPicker()
+    const searchInput = q<HTMLInputElement>('.picker-search__input')
+
+    typeInto(searchInput, '不存在的篇目与古人XYZ999')
+    await nextTick()
+
+    expect(qa('.text-item')).toHaveLength(0)
+    expect(q('.picker-empty__title').textContent).toContain('烟水茫茫')
+    expect(q('.picker-empty__btn').textContent).toContain('清空筛选条件')
+
+    q<HTMLButtonElement>('.picker-empty__btn').click()
+    await nextTick()
+    expect(qa('.text-item').length).toBe(texts.length)
+
+    wrapper.unmount()
+  })
+
+  it('在阅典籍渲染朱砂小印章，点击卡片发出 select 并关闭弹窗', async () => {
+    const targetId = 'qian-chi-bi-fu'
+    const wrapper = await mountTextPicker({ selectedId: targetId })
+
+    // 验证当前选中的文章带有「在閱」朱砂小印章
+    const activeItem = q('.text-item.is-active')
+    expect(activeItem).toBeTruthy()
+    expect(activeItem.querySelector('.seal-badge')?.textContent?.trim()).toBe('在閱')
+
+    // 点击其他卡片
+    const cards = qa<HTMLButtonElement>('.text-item')
+    const otherCard = cards.find((c) => !c.classList.contains('is-active'))!
+    otherCard.click()
+    await nextTick()
+
+    expect(wrapper.emitted('select')).toBeTruthy()
+    expect(wrapper.emitted('update:open')?.[0]).toEqual([false])
+
     wrapper.unmount()
   })
 
