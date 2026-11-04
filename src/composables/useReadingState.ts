@@ -31,6 +31,8 @@ const DEFAULT_STATE: ReadingState = {
   fontId: defaultFontId,
   textId: defaultTextId,
   customText: null,
+  customTitle: null,
+  customAuthor: null,
   layout: 'horizontal',
   fontSize: 30,
   lineHeight: 2.4,
@@ -58,9 +60,20 @@ export function useReadingState() {
     const isTrad = state.value.charVariant === 'traditional'
     if (custom && custom.trim()) {
       const converted = isTrad ? toTraditional(custom) : toSimplified(custom)
+      const rawTitle = state.value.customTitle?.trim()
+      const rawAuthor = state.value.customAuthor?.trim()
+
+      const title = rawTitle
+        ? (isTrad ? toTraditional(rawTitle) : toSimplified(rawTitle))
+        : (isTrad ? '自定文字' : '自定文字')
+
+      const author = rawAuthor
+        ? (isTrad ? toTraditional(rawAuthor) : toSimplified(rawAuthor))
+        : (isTrad ? '由你題寫' : '由你题写')
+
       return {
-        title: isTrad ? '自定文字' : '自定文字',
-        author: isTrad ? '由你題寫' : '由你题写',
+        title,
+        author,
         era: undefined,
         // 空行分段：一个空行即一个自然段
         paragraphs: converted
@@ -130,6 +143,8 @@ export function useReadingState() {
     state.value.textId = textId
     // 选内置文稿时清掉自定义文字，避免「看起来选了古文却在显示自写内容」
     state.value.customText = null
+    state.value.customTitle = null
+    state.value.customAuthor = null
     if (!syncLayout) return
 
     // 核心朝代联动：切换文章时，自动推导该文章所属朝代的默认标点与时代装帧版框
@@ -153,15 +168,43 @@ export function useReadingState() {
     }
   }
 
-  /** 应用题写内容。传入空串等同于退出题写模式。 */
-  function setCustomText(text: string) {
-    const trimmed = text.slice(0, CUSTOM_TEXT_LIMIT)
-    state.value.customText = trimmed.trim() ? trimmed : null
+  /** 应用题写内容。传入空串等同于退出题写模式。支持传入标题与作者 */
+  function setCustomText(
+    contentOrPayload: string | { content: string; title?: string | null; author?: string | null },
+    titleArg?: string | null,
+    authorArg?: string | null,
+  ) {
+    let content = ''
+    let title: string | null = null
+    let author: string | null = null
+
+    if (typeof contentOrPayload === 'string') {
+      content = contentOrPayload
+      title = titleArg ?? null
+      author = authorArg ?? null
+    } else if (contentOrPayload && typeof contentOrPayload === 'object') {
+      content = contentOrPayload.content
+      title = contentOrPayload.title ?? null
+      author = contentOrPayload.author ?? null
+    }
+
+    const trimmed = content.slice(0, CUSTOM_TEXT_LIMIT)
+    if (trimmed.trim()) {
+      state.value.customText = trimmed
+      state.value.customTitle = title?.trim() ? title.trim().slice(0, 50) : null
+      state.value.customAuthor = author?.trim() ? author.trim().slice(0, 30) : null
+    } else {
+      state.value.customText = null
+      state.value.customTitle = null
+      state.value.customAuthor = null
+    }
   }
 
   /** 退出题写，回到当前选中的内置古文 */
   function clearCustomText() {
     state.value.customText = null
+    state.value.customTitle = null
+    state.value.customAuthor = null
   }
 
   function setFontSize(size: number) {
@@ -269,6 +312,8 @@ export function useReadingState() {
       fontId: state.value.fontId,
       textId: state.value.textId,
       customText: state.value.customText,
+      customTitle: state.value.customTitle,
+      customAuthor: state.value.customAuthor,
       charVariant: state.value.charVariant,
       layout: isAncient ? 'vertical' : 'horizontal',
       paperTheme: defaultPaperThemeId,

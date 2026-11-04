@@ -25,6 +25,10 @@ export interface ReadingState {
   textId: string | null
   /** 用户题写的纯文本，按空行分段。始终以文本节点渲染，禁止 innerHTML。 */
   customText: string | null
+  /** 用户题写的自定义篇名/标题（可选） */
+  customTitle?: string | null
+  /** 用户题写的自定义作者/题署（可选） */
+  customAuthor?: string | null
   layout: LayoutMode
   /** 正文字号，单位 px */
   fontSize: number

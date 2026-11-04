@@ -233,13 +233,17 @@ describe('阅读状态', () => {
     expect(state.value.contentWidth).toBe(960)
   })
 
-  it('选择内置文稿会清空自定义文字，避免状态互相污染', () => {
+  it('选择内置文稿会清空自定义文字、标题与作者，避免状态互相污染', () => {
     const { state, setCustomText, setText } = useReadingState()
-    setCustomText('山有木兮木有枝')
+    setCustomText('山有木兮木有枝', '越人歌', '佚名')
     expect(state.value.customText).toBeTruthy()
+    expect(state.value.customTitle).toBe('越人歌')
+    expect(state.value.customAuthor).toBe('佚名')
 
     setText(texts[0].id)
     expect(state.value.customText).toBeNull()
+    expect(state.value.customTitle).toBeNull()
+    expect(state.value.customAuthor).toBeNull()
   })
 
   it('题写内容超出上限时被截断', () => {
@@ -254,10 +258,22 @@ describe('阅读状态', () => {
     expect(state.value.customText).toBeNull()
   })
 
-  it('题写模式下 activeText 返回自定文字并按空行分段', () => {
-    const { activeText, setCustomText } = useReadingState()
+  it('题写模式下 activeText 返回自定文字并按空行分段，支持自定义标题与作者及繁简转换', () => {
+    const { activeText, setCustomText, setCharVariant } = useReadingState()
+    // 1. 默认繁体，未指定标题作者时回退默认
     setCustomText('第一段\n\n第二段')
     expect(activeText.value.title).toBe('自定文字')
+    expect(activeText.value.author).toBe('由你題寫')
     expect(activeText.value.paragraphs).toEqual(['第一段', '第二段'])
+
+    // 2. 指定自定义标题与作者
+    setCustomText('昔人已乘白云去', '黄鹤楼咏怀', '江上客')
+    expect(activeText.value.title).toBe('黃鶴樓詠懷')
+    expect(activeText.value.author).toBe('江上客')
+
+    // 3. 切换至简体字式
+    setCharVariant('simplified')
+    expect(activeText.value.title).toBe('黄鹤楼咏怀')
+    expect(activeText.value.author).toBe('江上客')
   })
 })

@@ -184,6 +184,8 @@ onMounted(() => {
       :open="activePanel === 'write'"
       :font="activeFont"
       :current="state.customText"
+      :current-title="state.customTitle"
+      :current-author="state.customAuthor"
       @update:open="(v) => (activePanel = v ? 'write' : null)"
       @apply="setCustomText"
       @clear="clearCustomText"

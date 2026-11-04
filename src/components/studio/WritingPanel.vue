@@ -8,9 +8,9 @@ import { countMissingInFont, useFontLoading } from '@/composables/useFontLoading
 /**
  * 题写面板。
  *
- * 核心职责有两个：
- * 1. 接受纯文本输入（永远以文本节点渲染，不拼 innerHTML）；
- * 2. 检测当前字体能否显示这段文字 —— 缺字时提示并可一键加载完整字体。
+ * 核心职责：
+ * 1. 接受标题、作者与正文输入（永远以文本节点渲染，不拼 innerHTML）；
+ * 2. 检测当前字体能否完整显示这段文字 —— 包含标题、作者与正文，缺字时提示并可一键加载完整字体。
  */
 
 const props = defineProps<{
@@ -18,23 +18,31 @@ const props = defineProps<{
   font: FontEntryWithAssets
   /** 当前生效的题写内容，打开面板时回填 */
   current: string | null
+  currentTitle?: string | null
+  currentAuthor?: string | null
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  apply: [text: string]
+  apply: [content: string, title?: string, author?: string]
   clear: []
 }>()
 
 const { statusOf, loadFull } = useFontLoading()
 
 const draft = ref('')
+const draftTitle = ref('')
+const draftAuthor = ref('')
 
 // 每次打开都从当前生效内容回填，避免上次未应用的草稿意外覆盖
 watch(
   () => props.open,
   (isOpen) => {
-    if (isOpen) draft.value = props.current ?? ''
+    if (isOpen) {
+      draft.value = props.current ?? ''
+      draftTitle.value = props.currentTitle ?? ''
+      draftAuthor.value = props.currentAuthor ?? ''
+    }
   },
   { immediate: true },
 )
@@ -42,10 +50,11 @@ watch(
 const length = computed(() => draft.value.length)
 const overLimit = computed(() => length.value > CUSTOM_TEXT_LIMIT)
 
-/** 原字体未收录的字符数（基于母本真实 cmap） */
-const missingInFont = computed(() =>
-  draft.value.trim() ? countMissingInFont(props.font.id, draft.value) : 0,
-)
+/** 原字体未收录的字符数（基于母本真实 cmap，覆盖标题、作者与正文） */
+const missingInFont = computed(() => {
+  const combined = (draftTitle.value + draftAuthor.value + draft.value).trim()
+  return combined ? countMissingInFont(props.font.id, combined) : 0
+})
 
 const loadStatus = computed(() => statusOf(props.font.id))
 const isLoading = computed(() => loadStatus.value === 'loading')
@@ -56,11 +65,14 @@ async function requestFull() {
 }
 
 function apply() {
-  emit('apply', draft.value)
+  emit('apply', draft.value, draftTitle.value.trim(), draftAuthor.value.trim())
   emit('update:open', false)
 }
 
 function clear() {
+  draftTitle.value = ''
+  draftAuthor.value = ''
+  draft.value = ''
   emit('clear')
   emit('update:open', false)
 }
@@ -73,17 +85,54 @@ function clear() {
     description="写下你自己的文字，立即以当前字体与版式呈现。空行分段。"
     @update:open="(v) => emit('update:open', v)"
   >
-    <label for="draft-text" class="zz-sr-only">题写内容</label>
-    <textarea
-      id="draft-text"
-      v-model="draft"
-      class="field"
-      rows="8"
-      :maxlength="CUSTOM_TEXT_LIMIT + 200"
-      placeholder="山有木兮木有枝，心悦君兮君不知。"
-      :aria-invalid="overLimit || undefined"
-      :aria-describedby="overLimit ? 'draft-warn' : undefined"
-    />
+    <div class="writing-form">
+      <!-- 篇名与作者题署输入框 -->
+      <div class="form-row">
+        <div class="form-field">
+          <label for="draft-title" class="field-label">篇名 / 标题</label>
+          <input
+            id="draft-title"
+            v-model="draftTitle"
+            type="text"
+            class="field field--input"
+            maxlength="50"
+            placeholder="如：无题、秋兴"
+            aria-label="题写篇名"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="draft-author" class="field-label">题署 / 作者</label>
+          <input
+            id="draft-author"
+            v-model="draftAuthor"
+            type="text"
+            class="field field--input"
+            maxlength="30"
+            placeholder="如：你的名字或雅号"
+            aria-label="题写作者"
+          />
+        </div>
+      </div>
+
+      <!-- 正文输入框 -->
+      <div class="form-field">
+        <div class="field-label-row">
+          <label for="draft-text" class="field-label">正文内容</label>
+          <span class="field-hint">空行分段</span>
+        </div>
+        <textarea
+          id="draft-text"
+          v-model="draft"
+          class="field field--textarea"
+          rows="8"
+          :maxlength="CUSTOM_TEXT_LIMIT + 200"
+          placeholder="山有木兮木有枝，心悦君兮君不知。"
+          :aria-invalid="overLimit || undefined"
+          :aria-describedby="overLimit ? 'draft-warn' : undefined"
+        />
+      </div>
+    </div>
 
     <div class="meta">
       <span class="meta__count" :class="{ 'is-over': overLimit }">
@@ -133,33 +182,84 @@ function clear() {
 </template>
 
 <style scoped lang="scss">
+@use '@/styles/breakpoints' as bp;
+
+.writing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-label {
+  font-family: var(--zz-font-serif);
+  font-size: var(--zz-text-xs);
+  letter-spacing: var(--zz-track-tight);
+  color: var(--zz-muted);
+}
+
+.field-hint {
+  font-size: var(--zz-text-2xs);
+  letter-spacing: var(--zz-track-tight);
+  color: var(--zz-muted-soft);
+}
+
 .field {
   width: 100%;
-  min-height: 190px;
-  padding: 15px 16px;
   border: 1px solid var(--zz-line);
   border-radius: var(--zz-radius-md);
   background: var(--zz-paper-field);
   font-family: var(--zz-font-serif);
-  font-size: var(--zz-text-md);
-  line-height: 2;
-  letter-spacing: 0.02em;
+  font-size: var(--zz-text-sm);
   color: var(--zz-ink-body);
-  resize: vertical;
+  transition:
+    border-color var(--zz-dur-fast) var(--zz-ease-out),
+    box-shadow var(--zz-dur-fast) var(--zz-ease-out);
 
   &::placeholder {
     color: var(--zz-muted-soft);
     opacity: 0.7;
+    font-size: var(--zz-text-xs);
   }
 
   &:focus-visible {
-    outline: var(--zz-focus-ring);
-    outline-offset: 1px;
+    outline: none;
     border-color: var(--zz-accent);
+    box-shadow: 0 0 0 3px var(--zz-accent-wash);
   }
 
-  &[aria-invalid='true'] {
-    border-color: var(--zz-accent);
+  &--input {
+    height: 38px;
+    padding: 0 12px;
+  }
+
+  &--textarea {
+    min-height: 180px;
+    padding: 14px 16px;
+    line-height: 2;
+    letter-spacing: 0.02em;
+    resize: vertical;
+
+    &[aria-invalid='true'] {
+      border-color: var(--zz-accent);
+    }
   }
 }
 
@@ -280,6 +380,13 @@ function clear() {
       background: var(--zz-accent);
       color: var(--zz-paper-ui);
     }
+  }
+}
+
+@include bp.below(bp.$bp-mobile) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 </style>

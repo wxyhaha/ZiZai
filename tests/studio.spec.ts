@@ -308,18 +308,26 @@ describe('古文选集面板', () => {
 })
 
 describe('题写面板', () => {
-  async function mountWriting(text = '') {
+  async function mountWriting(text = '', title = '', author = '') {
     const font = getFont('huawen-mingchao')
     const wrapper = mount(WritingPanel, {
-      props: { open: true, font, current: text || null },
+      props: {
+        open: true,
+        font,
+        current: text || null,
+        currentTitle: title || null,
+        currentAuthor: author || null,
+      },
       attachTo: document.body,
     })
     await nextTick()
     return wrapper
   }
 
-  it('打开时回填当前生效的题写内容', async () => {
-    const wrapper = await mountWriting('山有木兮木有枝')
+  it('打开时回填当前生效的题写内容、标题与作者', async () => {
+    const wrapper = await mountWriting('山有木兮木有枝', '越人歌', '佚名')
+    expect(q<HTMLInputElement>('#draft-title').value).toBe('越人歌')
+    expect(q<HTMLInputElement>('#draft-author').value).toBe('佚名')
     expect(q<HTMLTextAreaElement>('#draft-text').value).toBe('山有木兮木有枝')
     wrapper.unmount()
   })
@@ -332,9 +340,10 @@ describe('题写面板', () => {
     wrapper.unmount()
   })
 
-  it('输入原字体未收录字符时提示超出字体库', async () => {
+  it('输入原字体未收录字符时提示超出字体库（支持标题与作者缺字联动检测）', async () => {
     const wrapper = await mountWriting()
-    typeInto(q<HTMLTextAreaElement>('#draft-text'), '楯')
+    typeInto(q<HTMLInputElement>('#draft-title'), '栏楯记')
+    typeInto(q<HTMLTextAreaElement>('#draft-text'), '春水初生')
     await nextTick()
 
     expect(q('.glyph-notice--soft').textContent).toContain('不在')
@@ -342,14 +351,16 @@ describe('题写面板', () => {
     wrapper.unmount()
   })
 
-  it('点「应用到书页」会 emit apply 并请求关闭', async () => {
+  it('点「应用到书页」会 emit apply 并请求关闭，携带标题与作者', async () => {
     const wrapper = await mountWriting()
-    typeInto(q<HTMLTextAreaElement>('#draft-text'), '山有木兮木有枝')
+    typeInto(q<HTMLInputElement>('#draft-title'), '短歌行')
+    typeInto(q<HTMLInputElement>('#draft-author'), '曹孟德')
+    typeInto(q<HTMLTextAreaElement>('#draft-text'), '对酒当歌，人生几何！')
     await nextTick()
     q<HTMLButtonElement>('.action--primary').click()
     await nextTick()
 
-    expect(wrapper.emitted('apply')?.[0]).toEqual(['山有木兮木有枝'])
+    expect(wrapper.emitted('apply')?.[0]).toEqual(['对酒当歌，人生几何！', '短歌行', '曹孟德'])
     expect(wrapper.emitted('update:open')?.[0]).toEqual([false])
     wrapper.unmount()
   })
