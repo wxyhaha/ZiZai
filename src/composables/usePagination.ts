@@ -132,10 +132,26 @@ export function estimateTitleBlockHeight(input: PaginationInput, width: number):
 }
 
 /**
+ * 统计字符串中的有效汉字与字母数字数量（忽略标点与空白）
+ */
+export function cleanCharCount(s: string): number {
+  return Array.from(s).filter(
+    (c) => !/[，。、；：？！!?;,\s“”‘’『』「」《》（）"'()[\]{}]/.test(c),
+  ).length
+}
+
+export interface PoetryCoupletUnit {
+  text: string
+  verses: string[]
+}
+
+/**
  * 将诗词段落切分为天然诗句（以逗号、句号、感叹号、问号、分号为界，保留标点）
+ * 包含短分句智能粘连（Clause Cohesion）：三言短逗等不足以成句（有效字数 < 4）的片段
+ * 绝不孤立成行，必须与后续分句合并，保证诗意与韵律完整。
  */
 export function splitIntoPoetryVerses(paragraph: string): string[] {
-  const verses: string[] = []
+  const rawParts: string[] = []
   let current = ''
   const clauseEnds = new Set(['，', '。', '！', '？', '；', '、', '!', '?', ';', '\n'])
   const chars = Array.from(paragraph)
@@ -153,21 +169,80 @@ export function splitIntoPoetryVerses(paragraph: string): string[] {
           chars[i + 1] === '』' ||
           chars[i + 1] === '」' ||
           chars[i + 1] === '）' ||
-          chars[i + 1] === '》')
+          chars[i + 1] === '》' ||
+          chars[i + 1] === '"' ||
+          chars[i + 1] === "'")
       ) {
         i++
         current += chars[i]
       }
-      if (current.trim()) {
-        verses.push(current.trim())
+      if (cleanCharCount(current) > 0) {
+        rawParts.push(current.trim())
       }
       current = ''
     }
   }
-  if (current.trim()) {
-    verses.push(current.trim())
+  if (cleanCharCount(current) > 0) {
+    rawParts.push(current.trim())
+  }
+
+  // 阶段 2：短分句智能粘连（杜绝 <= 3 字短逗孤立成列，如「岑夫子，」「将进酒，」「五花马，」「君不见，」）
+  const verses: string[] = []
+  let buffer = ''
+
+  for (let i = 0; i < rawParts.length; i++) {
+    const part = rawParts[i]
+    buffer += part
+    const len = cleanCharCount(buffer)
+    const isSentenceEnd = /[。！？；.!?][”’』」）》"']?$/.test(part)
+
+    // 判定是否可形成独立诗句单元：
+    // 1. 已是自然句末（。！？；）且有效汉字 >= 4；或者已到最后片段
+    // 2. 是逗号分割，但有效汉字已达到 >= 4（四言/五言/七言等标准诗句）
+    if ((isSentenceEnd && len >= 4) || len >= 4 || i === rawParts.length - 1) {
+      verses.push(buffer)
+      buffer = ''
+    }
+  }
+  if (buffer.trim()) {
+    verses.push(buffer.trim())
   }
   return verses
+}
+
+/**
+ * 将诗词段落解析为联句单元（每个单元包含完整对仗联文本及细分诗句）
+ */
+export function parsePoetryParagraph(paragraph: string): PoetryCoupletUnit[] {
+  const verses = splitIntoPoetryVerses(paragraph)
+  const couplets: PoetryCoupletUnit[] = []
+  let buffer: string[] = []
+
+  const isSentenceEnd = (verse: string) => {
+    return /[。！？；.!?][”’』」）》"']?$/.test(verse.trim())
+  }
+
+  for (let i = 0; i < verses.length; i++) {
+    const v = verses[i]
+    buffer.push(v)
+
+    if (isSentenceEnd(v) || buffer.length >= 2 || i === verses.length - 1) {
+      couplets.push({
+        text: buffer.join(''),
+        verses: [...buffer],
+      })
+      buffer = []
+    }
+  }
+
+  if (buffer.length > 0) {
+    couplets.push({
+      text: buffer.join(''),
+      verses: [...buffer],
+    })
+  }
+
+  return couplets
 }
 
 /**
@@ -178,7 +253,7 @@ export function groupIntoCouplets(verses: string[]): string[] {
   let buffer: string[] = []
 
   const isSentenceEnd = (verse: string) => {
-    return /[。！？；.!?][”’』」）》]?$/.test(verse.trim())
+    return /[。！？；.!?][”’』」）》"']?$/.test(verse.trim())
   }
 
   for (let i = 0; i < verses.length; i++) {
@@ -277,14 +352,17 @@ function paginateHorizontal(input: PaginationInput): BookPage[] {
   input.paragraphs.forEach((paragraph, paragraphIndex) => {
     let lines: string[]
     if (isPoetry) {
-      const verses = splitIntoPoetryVerses(paragraph)
-      const couplets = groupIntoCouplets(verses)
-      const fitsCouplets = couplets.every((c) => {
+      const coupletUnits = parsePoetryParagraph(paragraph)
+      lines = []
+      coupletUnits.forEach((unit) => {
         const tracking = input.letterSpacing * input.fontSize
-        const w = Array.from(c).reduce((sum, ch) => sum + measure(input, ch) + tracking, 0)
-        return w <= textWidth
+        const w = Array.from(unit.text).reduce((sum, ch) => sum + measure(input, ch) + tracking, 0)
+        if (w <= textWidth) {
+          lines.push(unit.text)
+        } else {
+          lines.push(...unit.verses)
+        }
       })
-      lines = fitsCouplets ? couplets : verses
     } else {
       lines = wrapHorizontal(paragraph, input, textWidth)
     }
@@ -422,16 +500,9 @@ function paginateVertical(input: PaginationInput): BookPage[] {
 
   if (isPoetry) {
     const parsed = input.paragraphs.map((p) => {
-      const verses = splitIntoPoetryVerses(p)
-      const couplets = groupIntoCouplets(verses)
-      return { p, verses, couplets }
+      const coupletUnits = parsePoetryParagraph(p)
+      return { p, coupletUnits }
     })
-
-    const allCouplets = parsed.flatMap((item) => item.couplets)
-    // 核心判定规则：如果字体大小可以一联一行，就一联一行；如果只能做到单句成列，就单句成列
-    const canFitCouplets =
-      allCouplets.length > 0 &&
-      allCouplets.every((c) => measureVerticalTextHeight(c, input) <= availableHeight)
 
     parsed.forEach((item, pIndex) => {
       if (pIndex > 0) {
@@ -441,24 +512,25 @@ function paginateVertical(input: PaginationInput): BookPage[] {
         }
       }
 
-      if (canFitCouplets) {
-        // 一联一行
-        item.couplets.forEach((couplet) => {
-          append({ kind: 'body', text: couplet, width: bodyColumnWidth })
-        })
-      } else {
-        // 单句成列
-        item.verses.forEach((verse) => {
-          const vHeight = measureVerticalTextHeight(verse, input)
-          if (vHeight <= availableHeight) {
-            append({ kind: 'body', text: verse, width: bodyColumnWidth })
-          } else {
-            splitVertical(verse, input).forEach((text) => {
-              append({ kind: 'body', text, width: bodyColumnWidth })
-            })
-          }
-        })
-      }
+      item.coupletUnits.forEach((unit) => {
+        const cHeight = measureVerticalTextHeight(unit.text, input)
+        if (cHeight <= availableHeight) {
+          // 一联一行
+          append({ kind: 'body', text: unit.text, width: bodyColumnWidth })
+        } else {
+          // 单句成列（绝不腰斩，短逗智能粘连）
+          unit.verses.forEach((verse) => {
+            const vHeight = measureVerticalTextHeight(verse, input)
+            if (vHeight <= availableHeight) {
+              append({ kind: 'body', text: verse, width: bodyColumnWidth })
+            } else {
+              splitVertical(verse, input).forEach((text) => {
+                append({ kind: 'body', text, width: bodyColumnWidth })
+              })
+            }
+          })
+        }
+      })
     })
   } else {
     // 散文流式

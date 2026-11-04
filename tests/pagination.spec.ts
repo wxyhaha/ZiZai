@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { paginateText, type PaginationInput } from '@/composables/usePagination'
+import {
+  paginateText,
+  parsePoetryParagraph,
+  splitIntoPoetryVerses,
+  type PaginationInput,
+} from '@/composables/usePagination'
 
 function input(overrides: Partial<PaginationInput> = {}): PaginationInput {
   return {
@@ -256,5 +261,29 @@ describe('书页分页', () => {
     expect(pages[0].paragraphs.every((p) => p.indent === false)).toBe(true)
     const allLines = pages.flatMap((p) => p.paragraphs).flatMap((p) => p.text.split('\n'))
     expect(allLines.join('')).toBe(poem.paragraphs.join(''))
+  })
+
+  it('短分句智能粘连（Clause Cohesion）：杜绝三言短逗被机械切碎成单独列', () => {
+    const text =
+      '岑夫子，丹丘生，将进酒，杯莫停。与君歌一曲，请君为我倾耳听。五花马，千金裘，呼儿将出换美酒，与尔同销万古愁。'
+    const verses = splitIntoPoetryVerses(text)
+    expect(verses).not.toContain('岑夫子，')
+    expect(verses).not.toContain('丹丘生，')
+    expect(verses).not.toContain('将进酒，')
+    expect(verses).not.toContain('杯莫停。')
+    expect(verses).not.toContain('五花马，')
+    expect(verses).not.toContain('千金裘，')
+
+    expect(verses).toContain('岑夫子，丹丘生，')
+    expect(verses).toContain('将进酒，杯莫停。')
+    expect(verses).toContain('五花马，千金裘，')
+    expect(verses).toContain('呼儿将出换美酒，')
+    expect(verses).toContain('与尔同销万古愁。')
+
+    const units = parsePoetryParagraph('岑夫子，丹丘生，将进酒，杯莫停。与君歌一曲，请君为我倾耳听。')
+    expect(units).toHaveLength(2)
+    expect(units[0].text).toBe('岑夫子，丹丘生，将进酒，杯莫停。')
+    expect(units[0].verses).toEqual(['岑夫子，丹丘生，', '将进酒，杯莫停。'])
+    expect(units[1].text).toBe('与君歌一曲，请君为我倾耳听。')
   })
 })

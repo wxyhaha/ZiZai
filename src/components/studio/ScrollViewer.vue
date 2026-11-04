@@ -10,8 +10,7 @@ import {
   scrollTypography,
 } from '@/composables/scrollTypography'
 import {
-  groupIntoCouplets,
-  splitIntoPoetryVerses,
+  parsePoetryParagraph,
 } from '@/composables/usePagination'
 
 const props = defineProps<{
@@ -61,38 +60,34 @@ const poetryStanzas = computed<PoetryColumnItem[][]>(() => {
   const punctId = rules.value.punctuation.id
 
   const parsed = props.paragraphs.map((p) => {
-    const verses = splitIntoPoetryVerses(p)
-    const couplets = groupIntoCouplets(verses)
-    return { verses, couplets }
+    return parsePoetryParagraph(p)
   })
 
-  // 核心判定规则：如果字体大小可以一联一行，就一联一行；如果只能做到单句成列，就单句成列
-  const allCouplets = parsed.flatMap((p) => p.couplets)
-  const canFitCouplets =
-    allCouplets.length > 0 &&
-    allCouplets.every((c) => {
-      const h = measureScrollColumnHeight(c, props.fontSize, punctId)
-      return h <= availableHeight.value
-    })
-
-  return parsed.map((item) => {
+  // 核心判定规则：每联若高度充裕则一联一行；若超高则优雅降级为单句成列（绝不腰斩，短分句智能粘连）
+  return parsed.map((coupletUnits) => {
     const cols: string[] = []
-    if (canFitCouplets) {
-      cols.push(...item.couplets)
-    } else {
-      item.verses.forEach((verse) => {
-        const vHeight = measureScrollColumnHeight(verse, props.fontSize, punctId)
-        if (vHeight <= availableHeight.value) {
-          cols.push(verse)
-        } else {
-          const maxChars = Math.max(1, Math.floor(availableHeight.value / (props.fontSize * 1.015)))
-          const chars = Array.from(verse)
-          for (let i = 0; i < chars.length; i += maxChars) {
-            cols.push(chars.slice(i, i + maxChars).join(''))
+    coupletUnits.forEach((unit) => {
+      const coupletHeight = measureScrollColumnHeight(unit.text, props.fontSize, punctId)
+      if (coupletHeight <= availableHeight.value) {
+        // 一联一行
+        cols.push(unit.text)
+      } else {
+        // 单句成列
+        unit.verses.forEach((verse) => {
+          const vHeight = measureScrollColumnHeight(verse, props.fontSize, punctId)
+          if (vHeight <= availableHeight.value) {
+            cols.push(verse)
+          } else {
+            // 极窄视口或超大字号降级：在单句内部折列
+            const maxChars = Math.max(1, Math.floor(availableHeight.value / (props.fontSize * 1.015)))
+            const chars = Array.from(verse)
+            for (let i = 0; i < chars.length; i += maxChars) {
+              cols.push(chars.slice(i, i + maxChars).join(''))
+            }
           }
-        }
-      })
-    }
+        })
+      }
+    })
     return cols.map((text) => ({
       text,
       segments: scrollSegments(text, punctId),

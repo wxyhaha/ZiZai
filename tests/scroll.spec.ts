@@ -144,4 +144,72 @@ describe('连续手卷排版', () => {
     expect(wrapperProse.find('.scroll-heading--poetry').exists()).toBe(false)
     expect(wrapperProse.find('.scroll-body--poetry').exists()).toBe(false)
   })
+
+  it('诗词短分句智能粘连与自适应列款：《将进酒》三言短逗绝不孤立成列', () => {
+    const font = fonts[0]!
+    const jiangJinJiuParas = [
+      '君不见，黄河之水天上来，奔流到海不复回。君不见，高堂明镜悲白发，朝如青丝暮成雪。',
+      '岑夫子，丹丘生，将进酒，杯莫停。与君歌一曲，请君为我倾耳听。',
+      '五花马，千金裘，呼儿将出换美酒，与尔同销万古愁。',
+    ]
+
+    // 1. 标准 28px 字号下：高度充裕时，「岑夫子，丹丘生，将进酒，杯莫停。」整联成列
+    const wrapperNormal = mount(ScrollViewer, {
+      props: {
+        title: '将进酒',
+        author: '李白',
+        era: '唐',
+        category: '诗',
+        paragraphs: jiangJinJiuParas,
+        font,
+        fontSize: 28,
+        paperTheme: 'white',
+      },
+    })
+
+    const allColTextsNormal = wrapperNormal
+      .findAll('.scroll-column')
+      .map((col) => col.text().replace(/\s+/g, ''))
+
+    // 严密断言：全篇没有任何一列是仅包含「岑夫子，」或「丹丘生，」或「将进酒，」或「杯莫停。」的 3 字残列
+    expect(allColTextsNormal).not.toContain('岑夫子，')
+    expect(allColTextsNormal).not.toContain('丹丘生，')
+    expect(allColTextsNormal).not.toContain('将进酒，')
+    expect(allColTextsNormal).not.toContain('杯莫停。')
+    expect(allColTextsNormal).not.toContain('五花马，')
+    expect(allColTextsNormal).not.toContain('千金裘，')
+
+    // 且包含完整的合排联句
+    expect(allColTextsNormal.some((t) => t.includes('岑夫子，丹丘生，将进酒，杯莫停。'))).toBe(true)
+
+    // 2. 超大 55px 字号下：自动拆解为单句成列时，短逗仍智能粘连，绝不出现 3 字孤立列
+    const wrapperLarge = mount(ScrollViewer, {
+      props: {
+        title: '将进酒',
+        author: '李白',
+        era: '唐',
+        category: '诗',
+        paragraphs: jiangJinJiuParas,
+        font,
+        fontSize: 55,
+        paperTheme: 'white',
+      },
+    })
+
+    const allColTextsLarge = wrapperLarge
+      .findAll('.scroll-column')
+      .map((col) => col.text().replace(/\s+/g, ''))
+
+    expect(allColTextsLarge).not.toContain('岑夫子，')
+    expect(allColTextsLarge).not.toContain('丹丘生，')
+    expect(allColTextsLarge).not.toContain('将进酒，')
+    expect(allColTextsLarge).not.toContain('杯莫停。')
+    expect(allColTextsLarge).not.toContain('五花马，')
+    expect(allColTextsLarge).not.toContain('千金裘，')
+
+    // 大字下单句成列合排为「岑夫子，丹丘生，」与「将进酒，杯莫停。」
+    expect(allColTextsLarge.some((t) => t === '岑夫子，丹丘生，')).toBe(true)
+    expect(allColTextsLarge.some((t) => t === '将进酒，杯莫停。')).toBe(true)
+    expect(allColTextsLarge.some((t) => t === '五花马，千金裘，')).toBe(true)
+  })
 })
