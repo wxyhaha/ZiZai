@@ -24,8 +24,12 @@
 | 一点明体 | IPA Font License v1.0 | ✅ | 清代善本传承正字正文/展示 | 189.8 kB |
 | 寒蝉活宋体 | SIL OFL 1.1 | ✅ | 活字斑驳飞白正文/展示 | 958.8 kB |
 | 韵草体 | SIL OFL 1.1 | ✅ | 晚明万历草书典籍展示 | 605.0 kB |
+| 志莽行书 | SIL OFL 1.1 | ✅ | 吴昌硕风骨行草正文/展示 | 396.9 kB |
+| 马善政楷书 | SIL OFL 1.1 | ✅ | 摩崖金石榜书大字楷书正文/展示 | 553.1 kB |
+| 龙藏体 | SIL OFL 1.1 | ✅ | 狂草水墨大写意题签/展示 | 498.6 kB |
+| 说文解字小篆 | SIL OFL 1.1 | ✅ | 许慎秦汉小篆金石源流展示 | 1045.3 kB |
 
-**十款字体全部核实完毕，都可以随站点分发。** 不存在必须用系统字体替代的条目。
+**十四款字体全部核实完毕，都可以随站点分发。** 不存在必须用系统字体替代的条目。
 
 每款字体都产出两种文件：
 
@@ -273,7 +277,91 @@ OFL.txt 同时列有 `Copyright 2020 The Klee Project Authors`。
 
 ---
 
-## 十一、字体子集的维护约束
+## 十一、志莽行书 Zhi Mang Xing
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 志莽行书 / Zhi Mang Xing |
+| 版本 | Version 1.000 |
+| 字形数 | 7017（Unicode 码位：7015） |
+| 作者 | 魏志莽 |
+| 原始来源 | https://github.com/googlefonts/zhimangxing |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://raw.githubusercontent.com/googlefonts/zhimangxing/master/OFL.txt |
+| 允许再分发 | ✅ 是（OFL 1.1 允许打包分发与格式转换） |
+| 本项目用途 | 吴昌硕风骨金石行草，文人手札长文墨韵（落字子集 396.9 kB；全量高保真 2.19 MB） |
+| 核对日期 | 2026-11-04 |
+| 核对方式 | 读取 GitHub 仓库 `OFL.txt`；读取二进制 TTF 文件 `name` 表 `nameID 0`、`nameID 13`、`nameID 14` 交叉印证 |
+
+**已知限制**：
+- 全量覆盖 GB2312 规范汉字，行草牵丝连绵，长文阅读极具文人墨客手札韵致；若遇到极少数罕见字或冷僻典籍异体字会自动平滑回退到衬线体。
+
+---
+
+## 十二、马善政楷书 Ma Shan Zheng
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 马善政楷书 / Ma Shan Zheng |
+| 版本 | Version 1.000 |
+| 字形数 | 7017（Unicode 码位：7015） |
+| 作者 | 马善政 |
+| 原始来源 | https://github.com/googlefonts/mashanzheng |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://raw.githubusercontent.com/googlefonts/mashanzheng/master/OFL.txt |
+| 允许再分发 | ✅ 是（OFL 1.1 允许打包分发与格式转换） |
+| 本项目用途 | 摩崖金石榜书大字楷书，沉实雄强（落字子集 553.1 kB；全量高保真 3.10 MB） |
+| 核对日期 | 2026-11-04 |
+| 核对方式 | 读取 GitHub 仓库 `OFL.txt`；读取二进制 TTF 文件 `name` 表字段交叉印证 |
+
+**已知限制**：
+- 全量覆盖 GB2312 常用汉字，字势厚重大气，特别适宜横竖排古文标题与大字引首。
+
+---
+
+## 十三、龙藏体 Long Cang
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 龙藏体 / Long Cang |
+| 版本 | Version 1.000 |
+| 字形数 | 7017（Unicode 码位：7015） |
+| 作者 | 陈孝民 |
+| 原始来源 | https://github.com/googlefonts/longcang |
+| 授权 | SIL Open Font License 1.1 |
+| 授权全文 | https://raw.githubusercontent.com/googlefonts/longcang/master/OFL.txt |
+| 允许再分发 | ✅ 是（OFL 1.1 允许打包分发与格式转换） |
+| 本项目用途 | 笔走龙蛇、水墨飞白大写意狂草，长卷题签与大字视觉展示（落字子集 498.6 kB；全量高保真 2.81 MB） |
+| 核对日期 | 2026-11-04 |
+| 核对方式 | 读取 GitHub 仓库 `OFL.txt`；读取二进制 TTF 文件 `name` 表字段交叉印证 |
+
+**已知限制**：
+- 草法奔放跌宕，适宜长卷题签、名句节选与大字视觉展示，不适宜密集正文长篇通读。
+
+---
+
+## 十四、说文解字小篆 TW ShuoWen
+
+| 项 | 内容 |
+|---|---|
+| 字体名 | 说文解字小篆 / TW ShuoWen |
+| 版本 | Version 1.000 |
+| 字形数 | 6750（Unicode 码位：6745） |
+| 作者 | 台湾数位发展部 CNS 11643 全字库工程 |
+| 原始来源 | https://www.cns11643.gov.tw/ 与 https://data.gov.tw/license |
+| 授权 | SIL Open Font License 1.1（政府开放资料授权条款兼容 / OFL 开源发布） |
+| 授权全文 | https://data.gov.tw/license |
+| 允许再分发 | ✅ 是（遵循开放数据与 OFL 1.1 协议，允许再分发与衍生创作） |
+| 本项目用途 | 华夏文字金石篆书正统源流，许慎《说文解字》秦汉小篆权威复刻（落字子集 1045.3 kB；全量高保真 6.36 MB） |
+| 核对日期 | 2026-11-04 |
+| 核对方式 | 读取 CNS 官方开放授权条款，提取 TTF 二进制 cmap 证实其已映射至 Unicode U+4E00..U+9FFF 标准汉字区 |
+
+**已知限制**：
+- 为东汉许慎《说文解字》秦汉小篆复刻，不含秦汉后衍生的后起字、简体字与现代标点，未收录字符会自动回退到衬线体。
+
+---
+
+## 十五、字体子集的维护约束
 
 ### 字符集是怎么来的
 
@@ -311,7 +399,7 @@ OFL.txt 同时列有 `Copyright 2020 The Klee Project Authors`。
 
 ---
 
-## 十二、检查清单（新增字体时逐项确认）
+## 十六、检查清单（新增字体时逐项确认）
 
 - [ ] 已知字体名称、版本
 - [ ] 已知作者 / 版权方

@@ -1,8 +1,9 @@
 import { computed, readonly, ref } from 'vue'
-import type { LayoutMode, ReadingState } from '@/types'
+import type { LayoutMode, ReadingState, CharVariant } from '@/types'
 import { defaultFontId, getFont } from '@/data/fonts'
 import { defaultTextId, getText } from '@/data/texts'
 import { defaultPaperThemeId, type PaperThemeId } from '@/data/paperThemes'
+import { toTraditional, toSimplified } from '@/utils/hanziConvert'
 import {
   getEraPunctuationStyle,
   getPunctuationStyle,
@@ -41,6 +42,7 @@ const DEFAULT_STATE: ReadingState = {
   eraFormat: 'modern',
   scriptStyle: 'regular',
   woodblockFrame: false,
+  charVariant: 'traditional',
   judouMode: false,
 }
 
@@ -50,23 +52,25 @@ export const CUSTOM_TEXT_LIMIT = 2000
 const state = ref<ReadingState>({ ...DEFAULT_STATE })
 
 export function useReadingState() {
-  /** 当前生效的文稿：自定义文字优先于内置文稿。 */
+  /** 当前生效的文稿：自定义文字优先于内置文稿。自动根据 charVariant 派生繁简版本。 */
   const activeText = computed(() => {
     const custom = state.value.customText
+    const isTrad = state.value.charVariant === 'traditional'
     if (custom && custom.trim()) {
+      const converted = isTrad ? toTraditional(custom) : toSimplified(custom)
       return {
-        title: '自定文字',
-        author: '由你题写',
+        title: isTrad ? '自定文字' : '自定文字',
+        author: isTrad ? '由你題寫' : '由你题写',
         era: undefined,
         // 空行分段：一个空行即一个自然段
-        paragraphs: custom
+        paragraphs: converted
           .split(/\n{2,}/)
           .map((p) => p.trim())
           .filter(Boolean),
         category: '其他' as const,
       }
     }
-    return getText(state.value.textId ?? defaultTextId)
+    return getText(state.value.textId ?? defaultTextId, state.value.charVariant)
   })
 
   const activeFont = computed(() => getFont(state.value.fontId))
@@ -242,7 +246,16 @@ export function useReadingState() {
     state.value.woodblockFrame = enabled
   }
 
-  /** 恢复默认排版：保留当前字体与文选，自动恢复当前文章所属朝代的默认标点、时代装帧与书体规制 */
+  function setCharVariant(variant: CharVariant) {
+    state.value.charVariant = variant
+  }
+
+  function toggleCharVariant() {
+    state.value.charVariant =
+      state.value.charVariant === 'traditional' ? 'simplified' : 'traditional'
+  }
+
+  /** 恢复默认排版：保留当前字体、文选与字式，自动恢复当前文章所属朝代的默认标点、时代装帧与书体规制 */
   function reset() {
     const currentEra = activeText.value.era
     const eraStyle = getEraPunctuationStyle(currentEra)
@@ -256,6 +269,7 @@ export function useReadingState() {
       fontId: state.value.fontId,
       textId: state.value.textId,
       customText: state.value.customText,
+      charVariant: state.value.charVariant,
       layout: isAncient ? 'vertical' : 'horizontal',
       paperTheme: defaultPaperThemeId,
       punctuationStyle: eraStyle,
@@ -294,6 +308,8 @@ export function useReadingState() {
     setScriptStyle,
     setJudouMode,
     setWoodblockFrame,
+    setCharVariant,
+    toggleCharVariant,
     reset,
     resetToDefaults,
   }

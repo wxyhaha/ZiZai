@@ -4,6 +4,7 @@
     "name": "汇文明朝体",
     "sourceFile": "Huiwen.ttf",
     "src_cmap_count": 14070,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 14070,
     "cmap_match": true,
     "src_glyph_count": 13314,
@@ -71,6 +72,7 @@
     "name": "霞鹜文楷",
     "sourceFile": "LXGWWenKai-Regular.ttf",
     "src_cmap_count": 46926,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 46926,
     "cmap_match": true,
     "src_glyph_count": 47336,
@@ -136,6 +138,7 @@
     "name": "朱雀仿宋",
     "sourceFile": "ZhuqueFangsong-Regular.ttf",
     "src_cmap_count": 12882,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 12882,
     "cmap_match": true,
     "src_glyph_count": 13805,
@@ -203,6 +206,7 @@
     "name": "思源宋体",
     "sourceFile": "NotoSerifSC.ttf",
     "src_cmap_count": 30928,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 30928,
     "cmap_match": true,
     "src_glyph_count": 31058,
@@ -275,6 +279,7 @@
     "name": "齐伋刻本",
     "sourceFile": "Qiji-Combo.ttf",
     "src_cmap_count": 21068,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 21068,
     "cmap_match": true,
     "src_glyph_count": 19665,
@@ -340,6 +345,7 @@
     "name": "霞鹜致宋",
     "sourceFile": "LXGWZhiSongCL.ttf",
     "src_cmap_count": 23595,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 23595,
     "cmap_match": true,
     "src_glyph_count": 23887,
@@ -405,6 +411,7 @@
     "name": "源云明体",
     "sourceFile": "GenWanMin2TC-R.otf",
     "src_cmap_count": 35349,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 35349,
     "cmap_match": true,
     "src_glyph_count": 37684,
@@ -470,6 +477,7 @@
     "name": "一点明体",
     "sourceFile": "I.Ming-8.10.ttf",
     "src_cmap_count": 60017,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 60017,
     "cmap_match": true,
     "src_glyph_count": 60597,
@@ -593,7 +601,7 @@
     "axes": [],
     "dropped_tables": [],
     "src_size": 30026220,
-    "dst_size": 11732844,
+    "dst_size": 11732240,
     "compression_ratio": "39.1%"
   },
   {
@@ -601,6 +609,7 @@
     "name": "韵草体",
     "sourceFile": "Rhyme-Grass-G.ttf",
     "src_cmap_count": 18352,
+    "invalid_uvs_removed": 0,
     "dst_cmap_count": 18352,
     "cmap_match": true,
     "src_glyph_count": 15064,
@@ -660,5 +669,273 @@
     "src_size": 53283632,
     "dst_size": 8990180,
     "compression_ratio": "16.9%"
+  },
+  {
+    "id": "zhi-mang-xing",
+    "name": "志莽行书",
+    "sourceFile": "ZhiMangXing-Regular.ttf",
+    "src_cmap_count": 7015,
+    "invalid_uvs_removed": 0,
+    "dst_cmap_count": 7015,
+    "cmap_match": true,
+    "src_glyph_count": 7017,
+    "dst_glyph_count": 7017,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [
+      "DSIG"
+    ],
+    "src_size": 4063532,
+    "dst_size": 2300696,
+    "compression_ratio": "56.6%"
+  },
+  {
+    "id": "ma-shan-zheng",
+    "name": "马善政楷书",
+    "sourceFile": "MaShanZheng-Regular.ttf",
+    "src_cmap_count": 7015,
+    "invalid_uvs_removed": 0,
+    "dst_cmap_count": 7015,
+    "cmap_match": true,
+    "src_glyph_count": 7017,
+    "dst_glyph_count": 7017,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 5857936,
+    "dst_size": 3250476,
+    "compression_ratio": "55.5%"
+  },
+  {
+    "id": "long-cang",
+    "name": "龙藏体",
+    "sourceFile": "LongCang-Regular.ttf",
+    "src_cmap_count": 7015,
+    "invalid_uvs_removed": 0,
+    "dst_cmap_count": 7015,
+    "cmap_match": true,
+    "src_glyph_count": 7017,
+    "dst_glyph_count": 7017,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": true,
+        "in_dst": true,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [
+      "DSIG"
+    ],
+    "src_size": 5162508,
+    "dst_size": 2944368,
+    "compression_ratio": "57.0%"
+  },
+  {
+    "id": "tw-shuowen",
+    "name": "说文解字小篆",
+    "sourceFile": "TW-ShuoWen.ttf",
+    "src_cmap_count": 6745,
+    "invalid_uvs_removed": 0,
+    "dst_cmap_count": 6745,
+    "cmap_match": true,
+    "src_glyph_count": 6750,
+    "dst_glyph_count": 6750,
+    "glyph_match": true,
+    "layout_status": {
+      "GSUB": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "GPOS": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "GDEF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vhea": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "vmtx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "BASE": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "JSTF": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "morx": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      },
+      "mort": {
+        "in_src": false,
+        "in_dst": false,
+        "preserved": true
+      }
+    },
+    "has_fvar": false,
+    "fvar_match": true,
+    "axes": [],
+    "dropped_tables": [],
+    "src_size": 10381759,
+    "dst_size": 6673508,
+    "compression_ratio": "64.3%"
   }
 ]

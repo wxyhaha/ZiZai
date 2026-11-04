@@ -49,6 +49,9 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
         <DialogDescription v-if="props.description" class="panel__lede">
           {{ props.description }}
         </DialogDescription>
+        <DialogDescription v-else class="zz-sr-only">
+          {{ props.title }}
+        </DialogDescription>
 
         <div class="panel__body">
           <slot />

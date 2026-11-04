@@ -3,7 +3,7 @@
 > **生成规范依据**：ADR-015 · 全量 WOFF2 保留原字体完整内容。
 > 本报告由 `scripts/build-fonts.py` 自动化比对源字体（TTF/OTF）与全量 WOFF2 产物生成，杜绝任何字符子集裁剪与字形失真。
 > 
-> **审计执行时间**：2026-11-03 ｜ **收录字体总数**：10 款
+> **审计执行时间**：2026-11-03 ｜ **收录字体总数**：14 款
 
 ---
 
@@ -21,6 +21,10 @@
 | `i-ming` | **一点明体** | `I.Ming-8.10.ttf` | ✅ 60017 (100%) | ✅ 60597 (100%) | ✅ 完整 | — | 24.7 MB | 10.2 MB | 41.4% |
 | `chill-huosong` | **寒蝉活宋体** | `ChillHuoSong.otf` | ✅ 12152 (100%) | ✅ 13154 (100%) | ✅ 完整 | — | 28.6 MB | 11.2 MB | 39.1% |
 | `rhyme-grass` | **韵草体** | `Rhyme-Grass-G.ttf` | ✅ 18352 (100%) | ✅ 15064 (100%) | ✅ 完整 | — | 50.8 MB | 8.6 MB | 16.9% |
+| `zhi-mang-xing` | **志莽行书** | `ZhiMangXing-Regular.ttf` | ✅ 7015 (100%) | ✅ 7017 (100%) | ✅ 完整 | — | 3.9 MB | 2.2 MB | 56.6% |
+| `ma-shan-zheng` | **马善政楷书** | `MaShanZheng-Regular.ttf` | ✅ 7015 (100%) | ✅ 7017 (100%) | ✅ 完整 | — | 5.6 MB | 3.1 MB | 55.5% |
+| `long-cang` | **龙藏体** | `LongCang-Regular.ttf` | ✅ 7015 (100%) | ✅ 7017 (100%) | ✅ 完整 | — | 4.9 MB | 2.8 MB | 57.0% |
+| `tw-shuowen` | **说文解字小篆** | `TW-ShuoWen.ttf` | ✅ 6745 (100%) | ✅ 6750 (100%) | ✅ 完整 | — | 9.9 MB | 6.4 MB | 64.3% |
 
 ---
 
@@ -119,6 +123,44 @@
 - **字形总数 (Glyph Count)**：源字体 15064 个，WOFF2 15064 个（字形顺序与轮廓完全保留）。
 - **体积与压缩**：源文件 50.82 MB → WOFF2 8.57 MB（体积缩减至 16.9%）。
 - **保留排版特性表**：`vhea`, `vmtx`
+
+### 志莽行书 (`zhi-mang-xing`)
+
+- **母本文件名**：`scripts/font-sources/ZhiMangXing-Regular.ttf`
+- **产物路径**：`src/assets/fonts/zhi-mang-xing/zhi-mang-xing.woff2`
+- **字符映射 (cmap)**：源字体 7015 个码位，WOFF2 7015 个码位（匹配度：**100% 完全一致**）。
+- **字形总数 (Glyph Count)**：源字体 7017 个，WOFF2 7017 个（字形顺序与轮廓完全保留）。
+- **体积与压缩**：源文件 3.88 MB → WOFF2 2.19 MB（体积缩减至 56.6%）。
+- **保留排版特性表**：`GSUB`, `GPOS`, `GDEF`
+- **安全丢弃的无用表**：`DSIG`（符合 WOFF2 规范要求，如 DSIG 签名表）。
+
+### 马善政楷书 (`ma-shan-zheng`)
+
+- **母本文件名**：`scripts/font-sources/MaShanZheng-Regular.ttf`
+- **产物路径**：`src/assets/fonts/ma-shan-zheng/ma-shan-zheng.woff2`
+- **字符映射 (cmap)**：源字体 7015 个码位，WOFF2 7015 个码位（匹配度：**100% 完全一致**）。
+- **字形总数 (Glyph Count)**：源字体 7017 个，WOFF2 7017 个（字形顺序与轮廓完全保留）。
+- **体积与压缩**：源文件 5.59 MB → WOFF2 3.10 MB（体积缩减至 55.5%）。
+- **保留排版特性表**：`GSUB`, `GPOS`
+
+### 龙藏体 (`long-cang`)
+
+- **母本文件名**：`scripts/font-sources/LongCang-Regular.ttf`
+- **产物路径**：`src/assets/fonts/long-cang/long-cang.woff2`
+- **字符映射 (cmap)**：源字体 7015 个码位，WOFF2 7015 个码位（匹配度：**100% 完全一致**）。
+- **字形总数 (Glyph Count)**：源字体 7017 个，WOFF2 7017 个（字形顺序与轮廓完全保留）。
+- **体积与压缩**：源文件 4.92 MB → WOFF2 2.81 MB（体积缩减至 57.0%）。
+- **保留排版特性表**：`GSUB`, `GPOS`, `GDEF`
+- **安全丢弃的无用表**：`DSIG`（符合 WOFF2 规范要求，如 DSIG 签名表）。
+
+### 说文解字小篆 (`tw-shuowen`)
+
+- **母本文件名**：`scripts/font-sources/TW-ShuoWen.ttf`
+- **产物路径**：`src/assets/fonts/tw-shuowen/tw-shuowen.woff2`
+- **字符映射 (cmap)**：源字体 6745 个码位，WOFF2 6745 个码位（匹配度：**100% 完全一致**）。
+- **字形总数 (Glyph Count)**：源字体 6750 个，WOFF2 6750 个（字形顺序与轮廓完全保留）。
+- **体积与压缩**：源文件 9.90 MB → WOFF2 6.36 MB（体积缩减至 64.3%）。
+- **排版特性表**：母本无额外 OpenType 高级排版表。
 
 ---
 

@@ -185,6 +185,19 @@ def remove_invalid_variation_mappings(font):
     return removed
 
 
+def safe_replace(src_path: Path, dst_path: Path, retries: int = 5, delay: float = 0.5):
+    """Windows 安全文件原子替换，防止由于并发或文件锁导致 PermissionError。"""
+    for _ in range(retries):
+        try:
+            if dst_path.exists():
+                dst_path.unlink()
+            src_path.replace(dst_path)
+            return
+        except PermissionError:
+            time.sleep(delay)
+    src_path.replace(dst_path)
+
+
 def convert_single_font_task(item):
     """转换单款字体到全量 WOFF2（顶层函数供进程池调用）。"""
     font_id = item['id']
@@ -238,7 +251,7 @@ def convert_single_font_task(item):
     tmp_out = output_path.with_suffix('.tmp.woff2')
     font.save(str(tmp_out))
     font.close()
-    tmp_out.replace(output_path)
+    safe_replace(tmp_out, output_path)
     elapsed = time.time() - t0
 
     out_size = output_path.stat().st_size
@@ -399,7 +412,7 @@ def build_falling_subset_task(item):
     tmp_path = output_path.with_suffix('.tmp.woff2')
     subset.save_font(sub_font, str(tmp_path), opts)
     sub_font.close()
-    tmp_path.replace(output_path)
+    safe_replace(tmp_path, output_path)
 
     # 验证子集完整性
     verified_font = TTFont(str(output_path), lazy=True)
@@ -468,7 +481,7 @@ def build_brand_subset():
     tmp_path = output_path.with_suffix('.tmp.woff2')
     subset.save_font(sub_font, str(tmp_path), opts)
     sub_font.close()
-    tmp_path.replace(output_path)
+    safe_replace(tmp_path, output_path)
 
     BRAND_SCSS_PATH.parent.mkdir(parents=True, exist_ok=True)
     brand_scss = [

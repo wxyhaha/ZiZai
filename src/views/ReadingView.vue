@@ -8,7 +8,8 @@ import type { StudioTool } from '@/components/studio/StudioToolbar.vue'
 
 import BookViewer from '@/components/studio/BookViewer.vue'
 import ScrollViewer from '@/components/studio/ScrollViewer.vue'
-import { defaultPaperThemeId, paperThemes, type PaperThemeId } from '@/data/paperThemes'
+import ScrollSettingsDrawer from '@/components/studio/ScrollSettingsDrawer.vue'
+import { defaultPaperThemeId, type PaperThemeId } from '@/data/paperThemes'
 import StudioToolbar from '@/components/studio/StudioToolbar.vue'
 import FontPickerPanel from '@/components/studio/FontPickerPanel.vue'
 import TextPickerPanel from '@/components/studio/TextPickerPanel.vue'
@@ -39,6 +40,7 @@ const {
   setScriptStyle,
   setJudouMode,
   setWoodblockFrame,
+  setCharVariant,
   reset,
 } = useReadingState()
 
@@ -75,25 +77,27 @@ onMounted(() => {
 <template>
   <div class="studio zz-grain" :class="{ 'studio--scroll': mode === 'scroll' }">
     <Teleport to="#reading-controls" defer>
-      <div class="reading-topbar">
-        <div class="reading-modes" role="group" aria-label="阅读模式">
-          <button :aria-pressed="mode === 'book'" @click="switchMode('book')">书本</button>
-          <button :aria-pressed="mode === 'scroll'" @click="switchMode('scroll')">卷轴</button>
-        </div>
-        <template v-if="mode === 'scroll'">
-          <button class="scroll-text-choice" aria-label="选择文章" @click="openPanel('texts')">{{ activeText.title }} <span aria-hidden="true">⌄</span></button>
-          <label><span class="zz-sr-only">背景色</span><select v-model="scrollPaper" aria-label="背景色">
-            <option v-for="paper in paperThemes" :key="paper.id" :value="paper.id">{{ paper.name }}</option>
-          </select></label>
-          <label><span class="zz-sr-only">字体</span><select :value="state.fontId" aria-label="字体" @change="chooseFont(($event.target as HTMLSelectElement).value)">
-            <option v-for="font in fonts" :key="font.id" :value="font.id">{{ font.name }}</option>
-          </select></label>
-          <label class="scroll-size">字号 <input v-model.number="scrollSize" aria-label="字号" type="range" min="18" max="70" step="1" /><output>{{ scrollSize }}</output></label>
-        </template>
+      <div class="reading-modes" role="group" aria-label="阅读模式">
+        <button :aria-pressed="mode === 'book'" @click="switchMode('book')">书本</button>
+        <button :aria-pressed="mode === 'scroll'" @click="switchMode('scroll')">卷轴</button>
       </div>
     </Teleport>
     <main id="main" class="studio__main">
       <div class="studio__workspace">
+        <ScrollSettingsDrawer
+          v-if="mode === 'scroll'"
+          :title="activeText.title"
+          :paper-theme="scrollPaper"
+          :font-id="state.fontId"
+          :font-size="scrollSize"
+          :char-variant="state.charVariant"
+          @select-text="openPanel('texts')"
+          @update:paper-theme="(v) => (scrollPaper = v)"
+          @update:font-id="chooseFont"
+          @update:font-size="(v) => (scrollSize = v)"
+          @update:char-variant="setCharVariant"
+        />
+
         <ScrollViewer
           v-if="mode === 'scroll'"
           :title="activeText.title" :author="activeText.author" :era="activeText.era"
@@ -140,6 +144,7 @@ onMounted(() => {
       :texts="texts"
       :selected-id="state.textId"
       :is-custom="isCustom"
+      :char-variant="state.charVariant"
       @update:open="(v) => (activePanel = v ? 'texts' : null)"
       @select="chooseText"
       @write="activePanel = 'write'"
@@ -158,6 +163,7 @@ onMounted(() => {
       :script-style="state.scriptStyle"
       :judou-mode="state.judouMode"
       :woodblock-frame="state.woodblockFrame"
+      :char-variant="state.charVariant"
       @update:open="(v) => (activePanel = v ? 'typography' : null)"
       @update:layout="setLayout"
       @update:font-size="setFontSize"
@@ -170,6 +176,7 @@ onMounted(() => {
       @update:script-style="setScriptStyle"
       @update:judou-mode="setJudouMode"
       @update:woodblock-frame="setWoodblockFrame"
+      @update:char-variant="setCharVariant"
       @reset="reset"
     />
 
@@ -185,28 +192,44 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-.reading-topbar {
-  display: flex; align-items: center; justify-content: center; gap: 18px; color: var(--zz-ink-soft); font-size: 13px;
-  select { max-width: 130px; border: 0; background: transparent; cursor: pointer; padding: 5px 0; font-size: 13px; }
+.reading-modes {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  background: var(--zz-paper-deep);
+  border-radius: var(--zz-radius-sm);
+
+  button {
+    padding: 3px 14px;
+    white-space: nowrap;
+    border-radius: var(--zz-radius-xs);
+    font-family: var(--zz-font-serif);
+    font-size: 13px;
+    color: var(--zz-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all var(--zz-dur-fast) var(--zz-ease-out);
+
+    &:hover {
+      color: var(--zz-ink-soft);
+    }
+
+    &[aria-pressed='true'] {
+      background: var(--zz-paper-ui);
+      color: var(--zz-ink);
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+  }
 }
-.reading-modes { display: flex; flex: none; gap: 2px; padding: 3px; background: var(--zz-paper-deep); border-radius: var(--zz-radius-sm);
-  button { padding: 3px 12px; white-space: nowrap; border-radius: var(--zz-radius-xs); }
-  button[aria-pressed='true'] { background: var(--zz-paper-ui); color: var(--zz-ink); }
-}
-.scroll-text-choice { max-width: 150px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.scroll-size { display: flex; align-items: center; gap: 7px; white-space: nowrap;
-  input { width: 70px; accent-color: var(--zz-accent); }
-  output { width: 2ch; font-variant-numeric: tabular-nums; }
-}
+
 .studio--scroll {
   .studio__main { max-width: none; padding: 0; }
-  .studio__workspace { padding: 0; }
+  .studio__workspace { position: relative; padding: 0; }
 }
-@media (max-width: 1150px) {
-  .reading-topbar { gap: 10px; }
-  .scroll-text-choice { max-width: 105px; }
-  .scroll-size input { width: 48px; }
-}
+
 .studio {
   position: relative;
   flex: 0 0 auto;

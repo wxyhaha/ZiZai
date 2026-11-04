@@ -22,53 +22,71 @@ const activeKey = computed(() => (route.name === 'studio' ? 'studio' : 'home'))
     </RouterLink>
 
     <div v-if="activeKey === 'studio'" id="reading-controls" class="reading-controls" />
-    <nav class="site-nav" aria-label="主导航">
-      <RouterLink
-        v-for="item in navItems"
-        :key="item.key"
-        :to="item.to"
-        class="site-nav__link"
-        :class="{ 'is-active': activeKey === item.key }"
-        :aria-current="activeKey === item.key ? 'page' : undefined"
-        @click="closeMenu"
-      >
-        {{ item.label }}
-      </RouterLink>
 
-      <button
-        type="button"
-        class="site-nav__more"
-        :aria-expanded="isMenuOpen"
-        aria-controls="site-more-menu"
-        aria-haspopup="dialog"
-        @click="toggleMenu"
-      >
-        <span aria-hidden="true">···</span>
-        <span class="zz-sr-only">更多</span>
-      </button>
-    </nav>
+    <div class="site-header__end">
+      <div v-if="activeKey === 'studio'" id="reading-actions" class="reading-actions" />
+      <nav class="site-nav" aria-label="主导航">
+        <RouterLink
+          v-for="item in navItems"
+          :key="item.key"
+          :to="item.to"
+          class="site-nav__link"
+          :class="{ 'is-active': activeKey === item.key }"
+          :aria-current="activeKey === item.key ? 'page' : undefined"
+          @click="closeMenu"
+        >
+          {{ item.label }}
+        </RouterLink>
+
+        <button
+          type="button"
+          class="site-nav__more"
+          :aria-expanded="isMenuOpen"
+          aria-controls="site-more-menu"
+          aria-haspopup="dialog"
+          @click="toggleMenu"
+        >
+          <span aria-hidden="true">···</span>
+          <span class="zz-sr-only">更多</span>
+        </button>
+      </nav>
+    </div>
   </header>
 </template>
 
 <style scoped lang="scss">
 @use '@/styles/breakpoints' as bp;
 
-.reading-controls { min-width: 0; margin-inline: 24px; }
+.reading-controls {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 0;
+  pointer-events: auto;
+}
 
 .site-header {
   position: relative;
   z-index: 20;
-  // 在竖向 flex 容器里，`margin: auto` 会让元素收缩到内容宽度，
-  // 必须显式给满宽，两边留白才与页面内容对齐。
   width: 100%;
   flex: none;
   height: var(--zz-header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: var(--zz-container);
-  margin: 0 auto;
-  padding: 0 var(--zz-gutter);
+  padding: 0 clamp(24px, 3.5vw, 56px);
+
+  &__end {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+}
+
+.reading-actions {
+  display: flex;
+  align-items: center;
 }
 
 .brand {

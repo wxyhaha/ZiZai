@@ -4,6 +4,8 @@ import type { PunctuationStyleId } from '@/data/punctuationStyles'
 import type { EraFormatId, EraFormat } from '@/data/eraFormats'
 import type { ScriptStyleId, ScriptStyle } from '@/data/scriptStyles'
 
+export type CharVariant = 'traditional' | 'simplified'
+
 export type {
   PaperThemeId,
   PunctuationStyleId,
@@ -42,6 +44,8 @@ export interface ReadingState {
   scriptStyle: ScriptStyleId
   /** 古籍传统版框与中缝鱼尾：文武边栏、乌丝栏与中缝折页象鼻鱼尾（伴随时代自适应） */
   woodblockFrame: boolean
+  /** 汉字字式规范：traditional（繁体正字，默认）| simplified（通行简体） */
+  charVariant: CharVariant
   /** 兼容性字段：是否为朱墨套印句读模式 */
   judouMode?: boolean
 }

@@ -1,10 +1,20 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { texts } from '../src/data/texts'
 import { fonts } from '../src/data/fonts'
 import { paperThemes } from '../src/data/paperThemes'
 import { sanitizeTextForEra, getEraPunctuationStyle } from '../src/data/punctuationStyles'
+import { toTraditional } from '../src/utils/hanziConvert'
+
+async function ensureSettingsOpen(page: Page) {
+  const drawer = page.locator('.panel')
+  if (!(await drawer.isVisible())) {
+    await page.getByRole('button', { name: '卷轴设置' }).click({ force: true })
+    await expect(drawer).toBeVisible()
+  }
+}
 
 test('长卷全文、滚轮、两端轴杆、复制与设置隔离', async ({ page }) => {
+  test.setTimeout(60000)
   await page.goto('/studio')
   await page.getByRole('button', { name: '卷轴', exact: true }).click()
   const viewer = page.locator('.scroll-viewer')
@@ -13,14 +23,20 @@ test('长卷全文、滚轮、两端轴杆、复制与设置隔离', async ({ pa
   await expect(viewer).toHaveCSS('--scroll-size', '55px')
   await expect(page.locator('.rail')).toHaveCount(0)
   await expect(page.locator('.book-spread')).toHaveCount(0)
+  // 验证旧胶囊工具栏已彻底移除，仅在右侧保留卷轴设置入口
+  await expect(page.locator('.scroll-toolbar')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '卷轴设置' })).toBeVisible()
+
   expect(await viewport.evaluate(el => el.scrollLeft)).toBe(0)
   await expect(page.locator('.scroll-rod--head')).toBeInViewport()
   for (const text of texts) {
-    await page.getByRole('button', { name: '选择文章' }).click()
-    await page.locator('.text-item', { hasText: text.title }).click()
+    await ensureSettingsOpen(page)
+    await page.getByRole('button', { name: '选择文章' }).click({ force: true })
+    await page.locator('.text-item', { hasText: text.titleTrad || text.title }).click({ force: true })
     await expect(viewer).toHaveAttribute('aria-busy', 'false')
     const content = await page.locator('.scroll-paragraph').allTextContents()
-    expect(content).toEqual(text.paragraphs.map(p => sanitizeTextForEra(p, getEraPunctuationStyle(text.era))))
+    const rawParas = text.paragraphsTrad || text.paragraphs
+    expect(content).toEqual(rawParas.map(p => sanitizeTextForEra(p, getEraPunctuationStyle(text.era))))
   }
   await viewport.hover()
   const headBefore = await page.locator('.scroll-rod--head').boundingBox()
@@ -38,16 +54,24 @@ test('长卷全文、滚轮、两端轴杆、复制与设置隔离', async ({ pa
   expect(await page.locator('.scroll-rod--tail').boundingBox()).toEqual(tailBefore)
   await page.keyboard.press('Home')
   await expect(page.locator('.scroll-rod--head')).toBeInViewport()
+
+  await ensureSettingsOpen(page)
   for (const paper of paperThemes) {
-    await page.getByLabel('背景色', { exact: true }).selectOption(paper.id)
+    await page.locator(`.paper-palette__item[data-paper-id="${paper.id}"]`).click({ force: true })
     await expect(viewer).toHaveCSS('--scroll-paper', paper.color)
   }
-  await page.getByLabel('背景色', { exact: true }).selectOption('white')
-  await page.getByLabel('字体', { exact: true }).selectOption('lxgw-wenkai')
+  await page.locator('.paper-palette__item[data-paper-id="white"]').click({ force: true })
+  await page.locator('.font-card[data-font-id="lxgw-wenkai"]').click({ force: true })
   await page.getByLabel('字号', { exact: true }).fill('42')
   await expect(viewer).toHaveAttribute('aria-busy', 'false')
   await expect(viewer).toHaveCSS('--scroll-size', '42px')
   await expect(viewer).toHaveCSS('--scroll-paper', '#FFFFFF')
+  await page.screenshot({ path: 'test-results/scroll-drawer-settings.png' })
+
+  // 验证按 Esc 可关闭抽屉
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.panel')).toHaveCount(0)
+
   const selected = await page.locator('.scroll-paragraph').first().evaluate(el => {
     const range = document.createRange(); range.selectNodeContents(el)
     const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range)
@@ -66,19 +90,25 @@ test('全部字体与 PC 视口无裁切，保存首尾视觉证据', async ({ p
   test.setTimeout(60000)
   await page.goto('/studio')
   await page.getByRole('button', { name: '卷轴', exact: true }).click()
+  await ensureSettingsOpen(page)
   for (const font of fonts) {
-    await page.getByLabel('字体', { exact: true }).selectOption(font.id)
+    await page.locator(`.font-card[data-font-id="${font.id}"]`).click({ force: true })
     await expect(page.locator('.scroll-viewer')).toHaveAttribute('aria-busy', 'false')
     await expect(page.locator('.scroll-status')).toHaveCount(0)
     await expect(page.locator('.scroll-body')).toHaveCSS('writing-mode', 'vertical-rl')
   }
-  await page.getByLabel('字体', { exact: true }).selectOption('rhyme-grass')
+  await page.locator('.font-card[data-font-id="rhyme-grass"]').click({ force: true })
   await page.getByLabel('字号', { exact: true }).fill('55')
+  await page.keyboard.press('Escape')
   await page.screenshot({ path: `test-results/scroll-cursive.png` })
-  await page.getByLabel('字体', { exact: true }).selectOption('lxgw-wenkai')
+  await ensureSettingsOpen(page)
+  await page.locator('.font-card[data-font-id="lxgw-wenkai"]').click({ force: true })
+  await page.keyboard.press('Escape')
   for (const [width, height] of [[1024, 568], [1280, 720], [1440, 900], [1920, 1080]]) {
     await page.setViewportSize({ width: width!, height: height! })
+    await ensureSettingsOpen(page)
     await page.getByLabel('字号', { exact: true }).fill('55')
+    await page.keyboard.press('Escape')
     await expect(page.locator('.scroll-viewer')).toHaveAttribute('aria-busy', 'false')
     const geometry = await page.locator('.scroll-viewport').evaluate(el => ({
       height: el.clientHeight, scrollHeight: el.scrollHeight,
@@ -112,8 +142,10 @@ test('未知年代长文原标点完整，横向手势与最大字号可到末�
   await page.getByRole('button', { name: '卷轴', exact: true }).click()
   await expect(page.locator('.scroll-viewer')).toHaveAttribute('aria-busy', 'false')
   await expect(page.locator('.handscroll')).toHaveAttribute('data-punctuation', 'modern')
-  await expect(page.locator('.scroll-paragraph')).toHaveText(source)
+  await expect(page.locator('.scroll-paragraph')).toHaveText(toTraditional(source))
+  await ensureSettingsOpen(page)
   await page.getByLabel('字号', { exact: true }).fill('70')
+  await page.keyboard.press('Escape')
   const viewport = page.locator('.scroll-viewport')
   await viewport.hover()
   await page.mouse.wheel(-600, 0)
@@ -124,7 +156,7 @@ test('未知年代长文原标点完整，横向手势与最大字号可到末�
   const last = await page.locator('.scroll-paragraph').evaluate(el => {
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
     let node = walker.nextNode()!
-    while (!node.textContent?.includes('末字终验')) node = walker.nextNode()!
+    while (!node.textContent?.includes('末字終驗') && !node.textContent?.includes('末字终验')) node = walker.nextNode()!
     const range = document.createRange()
     range.setStart(node, node.textContent!.length - 4); range.setEnd(node, node.textContent!.length)
     const rect = range.getBoundingClientRect()

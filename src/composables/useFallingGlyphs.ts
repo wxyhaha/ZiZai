@@ -382,6 +382,8 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
   const horizontalPositions = Array<number>(count)
   const animationPhases = Array<number>(count)
   const glyphLaneIds = Array<number>(count)
+  const glyphDriftSigns = Array<number>(count)
+
   for (const side of ['left', 'right'] as const) {
     const sideIds = shuffle(
       sides.flatMap((glyphSide, id) => (glyphSide === side ? [id] : [])),
@@ -391,16 +393,57 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
     distributeGlyphsAcrossLanes(sideLanes, sideIds, rand)
 
     for (const lane of sideLanes) {
+      const laneCount = lane.glyphIds.length
       const lanePhases = randomSeparatedPhases(
-        lane.glyphIds.length,
-        0.84 / Math.max(1, lane.glyphIds.length),
+        laneCount,
+        0.84 / Math.max(1, laneCount),
         rand,
       )
-      lane.glyphIds.forEach((id, index) => {
-        horizontalPositions[id] = rand()
+
+      // 轨道内相邻相位横向交错排布：
+      // 在同一运动轨道内，将沿垂直相位相邻的汉字强制交替排布在字道的左轨与右轨，
+      // 彻底消除同一垂直线上前后两字相撞追尾的几何根因。
+      const laneStartsLeft = rand() < 0.5
+      for (let index = 0; index < laneCount; index++) {
+        let u: number
+        let driftSign: number
+
+        if (laneCount === 1) {
+          u = 0.5
+          driftSign = rand() < 0.5 ? -1 : 1
+        } else if (laneCount % 2 === 0) {
+          // 偶数个：左轨 [0.06, 0.26] 与右轨 [0.74, 0.94] 严格交替，向外漂移
+          const isLeft = (index % 2 === 0) === laneStartsLeft
+          if (isLeft) {
+            u = 0.06 + rand() * 0.20
+            driftSign = -1
+          } else {
+            u = 0.74 + rand() * 0.20
+            driftSign = 1
+          }
+        } else {
+          // 奇数个：循环着色避免首尾（index 0 与 index laneCount - 1）相位临界追尾
+          if (index === laneCount - 1) {
+            u = 0.44 + rand() * 0.12 // 居中平稳区
+            driftSign = rand() < 0.5 ? -1 : 1
+          } else {
+            const isLeft = (index % 2 === 0) === laneStartsLeft
+            if (isLeft) {
+              u = 0.06 + rand() * 0.20
+              driftSign = -1
+            } else {
+              u = 0.74 + rand() * 0.20
+              driftSign = 1
+            }
+          }
+        }
+
+        const id = lane.glyphIds[index]
+        horizontalPositions[id] = u
         animationPhases[id] = lanePhases[index]
         glyphLaneIds[id] = lane.id
-      })
+        glyphDriftSigns[id] = driftSign
+      }
     }
   }
 
@@ -435,7 +478,7 @@ export function buildGlyphs(options: BuildGlyphsOptions): FallingGlyph[] {
     const size = glyphSizes[id]
     const driftMagnitude = Math.round(layout.driftMin + rand() * (layout.driftMax - layout.driftMin))
     const drift = viewport === 'desktop'
-      ? (rand() < 0.5 ? -1 : 1) * driftMagnitude
+      ? (glyphDriftSigns[id] ?? (rand() < 0.5 ? -1 : 1)) * driftMagnitude
       : lane.side === 'left' ? -driftMagnitude : driftMagnitude
     const rotationPadding = Math.ceil(size * 0.08)
     const minLeft = lane.start + margin + rotationPadding + (drift < 0 ? driftMagnitude : 0)

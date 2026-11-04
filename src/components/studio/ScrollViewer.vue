@@ -35,7 +35,6 @@ const style = computed(() => ({
   '--scroll-font': props.font.family,
   '--scroll-size': `${props.fontSize}px`,
   '--scroll-leading': `${scrollLeading.value}`,
-  '--scroll-top-ratio': `${Number.parseFloat(rules.value.format.marginRatio) || 1.5}`,
 }))
 let generation = 0
 watch(() => [props.font.id, props.title, props.paragraphs] as const, async () => {
@@ -120,7 +119,7 @@ function onKey(event: KeyboardEvent) {
 .scroll-status:has(+ .scroll-frame:not(.is-loading)) { inset: auto 0 0; font-size: 12px; }
 .scroll-frame {
   display: flex; direction: rtl; align-items: stretch; width: 100%; height: 100%;
-  padding: 42px 32px 50px;
+  padding: 42px 32px;
   &.is-loading { visibility: hidden; }
 }
 .scroll-viewport {
@@ -139,7 +138,7 @@ function onKey(event: KeyboardEvent) {
 .handscroll { display: flex; width: max-content; min-width: 100%; height: 100%; align-items: stretch; }
 .scroll-paper {
   display: flex; align-items: stretch; flex: 1 0 auto; min-width: 0; height: 100%;
-  padding: clamp(24px, calc(3vh * var(--scroll-top-ratio)), 54px) 62px clamp(22px, 4vh, 42px);
+  padding: clamp(24px, 4vh, 48px) 62px;
 }
 .scroll-heading, .scroll-body, .scroll-ending { writing-mode: vertical-rl; direction: ltr; }
 .scroll-heading {
@@ -189,7 +188,7 @@ function onKey(event: KeyboardEvent) {
   &--tail { width: 30px; }
 }
 @media (max-height: 650px) {
-  .scroll-frame { padding-block: 30px 36px; }
-  .scroll-paper { padding-block: 22px 20px; }
+  .scroll-frame { padding-block: 30px; }
+  .scroll-paper { padding-block: 20px; }
 }
 </style>

@@ -2,23 +2,47 @@
 import { computed } from 'vue'
 import StudioPanel from './StudioPanel.vue'
 import type { TextEntry } from '@/types/text'
+import type { CharVariant } from '@/types/reading'
 import { textCategories } from '@/data/texts'
 
 /** 古文选集：按 诗 / 词 / 赋 / 散文 / 其他 分组。 */
 
-const props = defineProps<{
-  open: boolean
-  texts: TextEntry[]
-  selectedId: string | null
-  /** 是否处于题写模式（此时没有内置文稿被选中） */
-  isCustom: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    open: boolean
+    texts: TextEntry[]
+    selectedId: string | null
+    /** 是否处于题写模式（此时没有内置文稿被选中） */
+    isCustom: boolean
+    /** 繁简体字式规范，默认繁体 */
+    charVariant?: CharVariant
+  }>(),
+  {
+    charVariant: 'traditional',
+  },
+)
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
   select: [textId: string]
   write: []
 }>()
+
+function displayTitle(text: TextEntry) {
+  if (props.charVariant === 'simplified') return text.title
+  return text.titleTrad || text.title
+}
+
+function displayAuthor(text: TextEntry) {
+  if (props.charVariant === 'simplified') return text.author
+  return text.authorTrad || text.author
+}
+
+function displaySummary(text: TextEntry) {
+  if (!text.summary) return ''
+  if (props.charVariant === 'simplified') return text.summary
+  return text.summaryTrad || text.summary
+}
 
 const groups = computed(() =>
   textCategories
@@ -62,12 +86,12 @@ function choose(id: string) {
             @click="choose(text.id)"
           >
             <span class="text-item__main">
-              <span class="text-item__title">{{ text.title }}</span>
+              <span class="text-item__title">{{ displayTitle(text) }}</span>
               <span class="text-item__meta">
                 <span v-if="text.era">{{ text.era }} ·</span>
-                {{ text.author }}
+                {{ displayAuthor(text) }}
               </span>
-              <span v-if="text.summary" class="text-item__summary">{{ text.summary }}</span>
+              <span v-if="text.summary" class="text-item__summary">{{ displaySummary(text) }}</span>
             </span>
             <span class="text-item__mark" aria-hidden="true">↗</span>
           </button>

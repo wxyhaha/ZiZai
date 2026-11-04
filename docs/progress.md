@@ -7,6 +7,255 @@
 
 ---
 
+## 2026-11-04 · 修复首页落字弹窗关闭后汉字悬停暂停死锁（彻底杜绝落字卡死在空中）
+
+### 改动内容
+
+1. **根因定位与双重死锁分析**
+   - **悬停生命周期断档**：用户在首页点击落字时触发 `onGlyphEnter` 记录了 `hoveredGlyphId` 与 `hoveredLaneId`；弹窗开启后鼠标移入弹窗内容区，关闭弹窗时底层的落字元素从未触发 `mouseleave`，导致组件内残留当前轨道暂停判定；
+   - **WAI-ARIA Focus Return Trap（焦点回还陷阱）**：Reka UI Dialog 默认按照无障碍规范在关闭销毁时执行 `closeAutoFocus`，强行将页面焦点还原给触发弹窗的落字 `<button>`；按钮再度获得焦点触发 `@focus="onGlyphEnter"`，且浏览器默认不会在点击空白区域时使 `<button>` 失焦，导致汉字以浓墨高亮悬停态被永久钉在空中停止下落。
+2. **三重防御彻底根治**
+   - **切断自动焦点回还**（`HanziExploreDialog.vue`）：在 `DialogContent` 增加 `@close-auto-focus.prevent`，禁止弹窗关闭时强行回还焦点至流动背景中的落字按钮；
+   - **闭合状态强力重置监听**（`FallingGlyphs.vue`）：建立对 `props.activeGlyphId` 的监听（`watch`），当弹窗关闭（`oldVal != null && newVal == null`）时，强制清空 `hoveredGlyphId` 与 `hoveredLaneId` 并调用全局 `document.activeElement.blur()`，确保弹窗闭合瞬间立即解除暂停、平滑恢复下落；
+   - **点击主动失焦与 Tab 防干扰**（`FallingGlyphs.vue` / `HomeView.vue`）：点击落字触发 `emit('select', glyph)` 时主动调用 `blur()`，并在落字按钮上补充 `tabindex="-1"`，杜绝流动背景元素干扰主页核心 CTA 的键盘焦点流。
+3. **E2E 验证升级**
+   - 更新 `e2e/home-explore.spec.ts`：移除先前在测试中手工强塞的 `document.activeElement.blur()`，断言真实用户按 Esc 或关闭弹窗后，无需任何额外点击即可 100% 自然解除 pause 并恢复飘落。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：11 个测试套件、148 项 Vitest 单元与组件测试全部通过（耗时 6.05s）。
+- `npm run test:e2e`：15 项 Playwright Chromium 端到端真实浏览器测试全绿（耗时 51.4s）。
+- `npm run build`：生产环境打包成功，耗时 1.66s。
+
+---
+
+## 2026-11-04 · 古文繁简体一键切换与默认正体繁体字架构落地
+
+### 改动内容
+
+1. **正统古典书法美学契约与权威底本校勘注录**
+   - 华夏书法、刻本与金石之美（行草连绵、界格乌丝、许慎小篆）天生依附于正体汉字（繁体字）的对称结体、重心均衡与笔法呼应；
+   - 彻底摒弃机械简繁转换带来的多义字讹误（如「后/後」「于/於」「里/裏」「复/復/覆」「岳/嶽」），在 `src/data/texts.ts` 为全站 9 篇内置古文（《项脊轩志》《前赤壁赋》《岳阳楼记》《陋室铭》《定风波》《山居秋暝》《论语·学而》《兰亭集序》《匆匆》）全面注录权威底本校勘之正体繁体正字（`titleTrad`、`authorTrad`、`paragraphsTrad`、`summaryTrad`）；
+   - 扩充 `TextEntry` 契约，支持原汁原味展示底本校勘正体字。
+2. **轻量零依赖高精度简繁双向字符映射引擎（`src/utils/hanziConvert.ts`）**
+   - 提取严谨的 2,712 对 1:1 BMP 规范映射表，消除长代理对错位风险；
+   - 提供 `toTraditional`、`toSimplified` 与 `convertTextVariant` 工具函数，用于用户自定义文本（`customText`）与动态文稿的即时无损双向转换。
+3. **响应式字式状态层流转（`useReadingState.ts`）**
+   - 扩展 `ReadingState`，引入 `charVariant: 'traditional' | 'simplified'`，**默认值设为 `'traditional'`（繁体正字）**；
+   - 提供 `setCharVariant` 与 `toggleCharVariant` 状态操作接口；
+   - `activeText` 动态派生：当 `charVariant === 'traditional'` 时优先返回权威底本繁体文本，自定义文字经 `toTraditional` 映射；当为 `'simplified'` 时返回通行简体文本；状态切换零延迟且不破坏原始用户输入。
+4. **UI 交互收敛：繁简切换收入配置选项，顶栏恢复极简纯粹**
+   - **顶栏最外层极简纯粹（`ReadingView.vue`）**：移除顶栏 `#reading-controls` 的 `[ 繁 | 简 ]` 胶囊与细线分隔，使顶部居中仅保留 `[ 书本 | 卷轴 ]` 阅读模式切换，杜绝最外层视觉元素堆砌；
+   - **版式配置面板（`TypographyPanel.vue`）**：在排版设置中常设「字式规范」专区（繁体正字 / 通行简体），书本阅读时呼出「式」面板即可一键调配；
+   - **卷轴配置抽屉（`ScrollSettingsDrawer.vue`）**：在长卷设置中常设「字式规范」选项，长卷阅读时呼出「卷轴设置」即可一键调配；
+   - **古文选集（`TextPickerPanel.vue`）**：篇目卡片标题、作者与题解按当前字式规范动态同步，所选即所见。
+5. **自动化测试与端到端真实浏览器验证**
+   - 适配 `tests/reading.spec.ts`、`tests/studio.spec.ts` 与 `tests/scroll-settings.spec.ts`，新增繁简体切换单元与组件测试；全站单测套件保持 148 项且 100% 全绿；
+   - 升级 `e2e/reader.spec.ts` 与 `e2e/scroll.spec.ts`，断言顶栏外层无繁简按钮、仅在配置面板内切换「繁体正字/通行简体」并即时驱动正文与标题双向重排；Playwright E2E 保持 15 项且 100% 全绿。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：11 个测试套件、148 项 Vitest 单元与组件测试全部通过（耗时 5.27s）。
+- `npm run test:e2e`：15 项 Playwright Chromium 端到端真实浏览器测试全绿（耗时 49.1s）。
+- `npm run build`：生产环境打包成功，耗时 1.56s。
+
+---
+
+## 2026-11-04 · 引入 4 款纯正中华开源名家书法与金石字库（全量 14 款字库矩阵）
+
+### 改动内容
+
+1. **纯正中华开源书法名作考证与收录**
+   - 彻底舍弃存在编码残缺、缺字严重的日韩字库，严格遴选 100% 由中国书法家/典籍整理且基于 SIL Open Font License 1.1 开源协议的名家真迹：
+     - **志莽行书（Zhi Mang Xing）**：当代中国书法家魏志莽手写真迹，融汇吴昌硕金石行书大字与古代碑帖墨意，苍劲古拙、行草相参；
+     - **马善政楷书（Ma Shan Zheng）**：当代书法家马善政手书，取法中国传统名山摩崖石刻与楹联榜书大字，刀削斧劈、沉实雄强；
+     - **龙藏体（Long Cang）**：当代中国书法家陈孝民手写毛笔真迹，笔走龙蛇、水墨飞白，再现古代狂草大写意风神；
+     - **说文解字小篆（TW-ShuoWen）**：台湾数位发展部 CNS 11643 全字库工程依东汉许慎《说文解字》秦汉小篆原典数字化修摹，圆劲挺拔、骨肉停匀，为华夏文字金石篆书之正统源流。
+2. **全量高保真 WOFF2 与落字子集构建管线升级**
+   - 修复 Windows 环境下 `os.replace` 在跨进程/文件索引器占用时的 `PermissionError: [WinError 5]`，引入安全带重试的 `safe_replace` 机制；
+   - 运行零子集化管线，产出 4 款高保真全量 WOFF2 资产（志莽行书 2.19 MB、马善政楷书 3.10 MB、龙藏体 2.81 MB、说文解字小篆 6.36 MB）；
+   - 同步自动生成 4 款首页落字轻量子集（每款 1,200 字，396 kB ~ 1.0 MB），更新 `home-glyph-pools.json` 与 `font-coverage.json`。
+3. **字体授权依据与元信息完整性归档**
+   - 在 `src/data/fonts.ts` 登记 4 款新字体的单一事实来源元数据；
+   - 更新 `docs/font-licenses.md`：核查二进制 TTF 内嵌 `name` 表（`nameID 0`, `nameID 13`, `nameID 14`）与开源仓库许可，记录核查日期（2026-11-04）；全站核实自托管字体增至 14 款。
+4. **测试套件与回退契约适配**
+   - 适配 `tests/studio.spec.ts`：将许慎秦汉小篆（`tw-shuowen`）纳入先秦金石规范，断言其 caveats 健全且生僻/后起简体字正确回退；断言手写毛笔书法新字体对常用字和标点的覆盖度。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：11 个测试套件、147 项 Vitest 单元与组件测试全部通过（耗时 4.02s）。
+- `npm run test:e2e`：14 项 Playwright Chromium 端到端真实浏览器测试全绿（耗时 43.9s）。
+- `npm run build`：生产环境打包成功，耗时 1.32s（28 份字体资产全部生成并正确打包）。
+
+---
+
+## 2026-11-04 · 顶栏通栏舒展布局、卷轴设置右侧抽屉化、宣纸底色与字体选择对齐重构
+
+### 改动内容
+
+1. **顶栏向两侧延伸通栏布局（`SiteHeader.vue`）**
+   - 彻底解除以往硬编码 `max-width: var(--zz-container) (1540px)` 的局促约束，升级为流式满宽通栏；
+   - 两端边距引入平滑响应式安全距离：`padding: 0 clamp(24px, 3.5vw, 56px)`（移动端优雅回退为 16px）；
+   - 左侧品牌「字在 印」优雅靠左，右侧主导航「首页 赏字 ···」舒展靠右；
+   - 中间 `#reading-controls`（书本 / 卷轴模式切换胶囊）采用绝对定位（`left: 50%; transform: translate(-50%, -50%)`），确保在任何超宽、普通宽屏或窄屏下始终稳固位于视口正中。
+2. **卷轴设置收敛至顶栏右侧与抽屉化重构（`ScrollSettingsDrawer.vue`）**
+   - 彻底解决悬浮按钮紧贴卷轴轴头的压迫感与碰撞：在 `SiteHeader.vue` 右侧开辟 `#reading-actions` 挂载槽位，设置按钮通过 Teleport 优雅收纳至顶栏右侧，与「首页 赏字 ···」统一水平对齐；
+   - 卷轴主体上方彻底腾空，保留纯净自然的 42px 宣纸留白，不再受任何悬浮元素压迫；
+   - 抽屉底层基于 `StudioPanel.vue`，具备半透明宣纸遮罩、平滑滑出动画、Esc 键与点外关闭、ARIA 焦点管理；
+   - 安全删除已被完全取代的旧组件 `ScrollSettingsPopover.vue`。
+3. **宣纸古笺底色全量色卡矩阵可视化罗列**
+   - 对齐书本模式排版抽屉，双列网格完整罗列 10 款宣纸主题（仿古竹纸、麦黄皮纸、柔光暖宣、雪魄冷笺、象牙玉扣、浅赭麻纸、沉香陈纸、海贝淡粉、澄心纯白、白烟墨痕）；
+   - 每一款纸色配备真实宣纸色块预览、中英文雅致命名及悬停详细典故，选中项附带朱砂微边框高亮，点击即时将卷轴底色平滑变换。
+4. **择字 · 字体风骨鉴赏卡片列表**
+   - 告别单调枯燥的原生 `<select>` 纯文本列表，全面采用书法字体图鉴卡片设计；
+   - 呈现字体中文名、时代与风格标签（如「草书 · 狂草」「宋代 · 仿古」），并以该字体真实字形渲染大字号 sample 样字；
+   - 点击即刻切换卷轴字体并实时重新计算行距与句读。
+5. **测试套件与自动化覆盖**
+   - 重构 `tests/scroll-settings.spec.ts`，验证 `ScrollSettingsDrawer` 的渲染、宣纸色卡点击换纸、字体卡片点击择字、字号滑块及旧胶囊栏的彻底收敛（全套 147 项单测全绿）；
+   - 升级 `e2e/scroll.spec.ts`，断言抽屉滑出、10 款宣纸底色与全部字体的真实 Chromium 渲染、多 PC 视口无裁切断言（14 项 E2E 100% 全绿）。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：11 个测试套件、147 项 Vitest 单元与组件测试全部通过（耗时 4.38s）。
+- `npm run test:e2e`：14 项 Playwright Chromium 端到端真实浏览器测试全绿（耗时 44.7s）。
+- `npm run build`：生产环境打包成功，耗时 1.39s。
+
+---
+
+## 2026-11-04 · 首页落字同列联动暂停（方案 A）与防追尾治理
+
+### 改动内容
+
+1. **悬停追尾重叠物理根因定位**
+   - 用户反馈在鼠标悬停单字暂停后移开鼠标，该字与后方文字发生叠印；
+   - 根因定位：原实现仅对被悬停/激活的单字施加 `animation-play-state: paused`，而后方同轨文字依然以 $30\text{s} / 120\text{vh}$ 恒速持续下落。悬停数秒即导致后方文字追上被暂停文字，破坏了原始相位隔离，形成下落过程中的「物理追尾合体」。
+2. **同列整轨联动暂停架构落地（方案 A）**
+   - 改造 `FallingGlyphs.vue`：
+     - 监听各单字的 `@mouseenter` / `@mouseleave` 以及 `@focus` / `@blur`，动态推导当前悬停或激活的字符所属轨道 `laneId`；
+     - 当某字被悬停或弹窗激活时，**该轨道内的所有字符同步获得 `.glyph-field__item--paused`**（`animation-play-state: paused`），将整列所有字符的相对垂直间距与相位差严格锁死，彻底消除后车追赶前车的几何条件；
+     - **视觉焦点精准聚焦**：仅悬停的单字赋予浓墨加深（`var(--zz-ink)`，0.95 不透明度与微立体纸墨阴影），或在弹窗激活时赋予朱砂高亮（`var(--zz-accent)`），同列其余静止汉字保持原有淡墨半透明状态（`var(--zz-drift)`），视觉意象如同轻按琴弦，灵动优雅；
+     - 鼠标移开（或弹窗关闭并失焦）后，整列汉字同步平滑恢复下落，前后车距毫无偏差。
+3. **测试套件与自动化扩充**
+   - 在 `tests/hanzi-explore.spec.ts` 中新增单元测试：断言悬停或激活某字时，该字所在整条垂直轨道同步获得 paused 类，同列多字协同静止，移开后整列恢复运行（全套 147 项单测 100% 全绿）。
+   - 在 `e2e/home-explore.spec.ts` 中补充 Chromium 端到端断言：验证真实悬停与弹窗期间整列汉字持续维持 paused 锁定车距，失焦移开后全列平滑恢复，且多视口采样 0 重叠碰撞。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：11 个测试套件、147 项 Vitest 单元与组件测试全部通过（耗时 5.46s）。
+- `npm run test:e2e`：14 项 Playwright Chromium 端到端真实浏览器测试全绿（耗时 49.0s）。
+- `npm run build`：生产环境打包成功，耗时 1.56s。
+
+---
+
+## 2026-11-04 · 首页落字防撞交错分轨与发散漂移彻底治理
+
+### 改动内容
+
+1. **时空几何重叠根因定位**
+   - 深入分析多分辨率（1440×900、1920×1080、1366×768）与多种子下的落字轨迹动力学，重现并定位用户反馈截图中的重叠根因：
+     - 原 `horizontalPositions[id] = rand()` 对同一运动轨道内所有字符在横向位置上独立随机抽样，沿垂直相位相邻的前后两字极易抽中极近的同轴坐标（如 $\Delta X < 10\text{px}$）；
+     - 单条轨道在 768px 高度下容纳 12 个 42–64px 大汉字，扣除字符高度后垂直物理净空仅 10–14px；
+     - 叠加 $\pm 8^\circ$ 旋转与草书（如 `rhyme-grass` 字体）笔画外凸，在同轴抽样下发生视觉叠印。
+2. **同轨道横向交错排布算法（Anti-Rear-End Staggering）**
+   - 重构 `src/composables/useFallingGlyphs.ts` 中的位置生成逻辑：
+     - 在同一运动轨道内，将沿垂直相位相邻的汉字强制交替分配至字道的左半轨（Left Track，$u \in [0.06, 0.26]$）与右半轨（Right Track，$u \in [0.74, 0.94]$）；
+     - 针对单轨奇数字符数的闭环首尾项，引入奇环三着色法则（首尾项置于 Center Track 平稳区，$u \in [0.44, 0.56]$），确保环上所有相邻相位项在归一化横向距离差恒定满足 $\Delta u \ge 0.30$（对应物理横向安全间距 $\ge 35\text{px}$）；
+     - 协同配置发散漂移动力学：左轨字符向左漂移（`driftSign = -1`），右轨字符向右漂移（`driftSign = 1`），下落过程中物理间距进一步发散，彻底杜绝下落全过程中的交叉与追尾。
+3. **自动化测试与几何防撞验证**
+   - 新增 `tests/collision-check.spec.ts`：模拟 1440×900、1920×1080、1366×768 三大典型桌面视口与 100 个随机种子在下落全周期（30 采样步，共 9,000 个时空截面状态）下的包围盒碰撞检测，断言重叠数为严格 0。
+   - 新增 `e2e/overlap-check.spec.ts`：在真实 Chromium 浏览器环境对首页落字持续多视口采样，实测真实渲染重叠数为 0。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：11 个测试套件、146 项 Vitest 单元与组件测试全部通过（耗时 4.18s）。
+- `npm run test:e2e`：14 项 Playwright Chromium 端到端真实浏览器测试（含 `overlap-check.spec.ts` 0 重叠断言与 `home-explore.spec.ts` 交互）全部通过（耗时 51.9s）。
+- `npm run build`：生产环境打包成功，耗时 1.39s。
+
+---
+
+## 2026-11-04 · 首页「汉字探索」第一版（落字交互、原字体对照、笔顺动画与开源字典）
+
+### 改动内容
+
+1. **落字微交互感应与状态暂停**
+   - 改造 `FallingGlyphs.vue`：将原本不可交互的装饰元素升级为具可访问性的 `<button type="button" class="glyph-field__item">`，重置默认按钮形态。
+   - 利用 CSS Compositor 原生特性，在 `:hover` 与 `:focus-visible` 时赋予 `animation-play-state: paused`，并将字色加深为浓墨 `var(--zz-ink)`，移开即刻恢复平滑下落。
+   - 引入 `activeGlyphId` 属性，当某字被点击激活时，赋予 `.glyph-field__item--active` 样式，在弹窗关闭前维持暂停，弹窗关闭后恢复下落；其他背景字全程正常飘落。
+2. **首页层级穿透与交互隔离**
+   - 治理 `HomeView.vue` 舞台层级：将全屏网格容器 `.home__stage` 赋予 `pointer-events: none`，中央主内容 `.hero`（含「入字间」CTA）赋予 `pointer-events: auto`。
+   - 背景落字层 `.glyph-field` 为 `pointer-events: none`，各单字按钮为 `pointer-events: auto`。使左右两侧区域的落字点击与中央「入字间」按钮完美兼容，互不干扰。
+3. **汉字探索双栏弹窗与视觉精细化 (`HanziExploreDialog.vue`)**
+   - 基于 `reka-ui` 的 `DialogRoot` / `DialogPortal` / `DialogOverlay` / `DialogContent` 体系，支持 Esc 键快速关闭、外部点击关闭与焦点锁定。
+   - **视觉精简**：去除原落字与楷书卡片顶部微标、底部说明文案及冗余注脚，保留素雅呼吸感。
+   - **双格子 1:1 正方形等大对齐与零留白田字格**：
+     - 去除田字格左右两侧空白冗余，将田字格十字虚线直接扩展贯通至展示格子的内边框（`100% 100%`），消除内嵌多层边框造成的两侧留白；
+     - 双栏采用严格对称的 `calc(50% - 6px)` 规制，两侧展示框 `.hanzi-card__display` 均采用 `aspect-ratio: 1 / 1` 正方形制式，保证落字原字体格子与楷书格子尺寸 100% 严格一致（~180px × 180px）；
+     - HanziWriter 动态挂载尺寸自适应容器实际像素宽度，确保动画笔画比例与 118px 静态原字体精准契合。
+   - **字号与排版提升**：拼音放大至 17px 朱砂色、部首与笔画放大至 15px、中文释义放大至 15px（行高 1.68）。
+   - **数据来源链接化**：底部数据来源精简为指向官方 GitHub 仓库的精美链接（HanziDict ↗ 与 Hanzi Writer ↗）。
+4. **生僻字 / 缺笔顺降级排版稳健性治理**
+   - 确立**田字格绝对定位槽位架构**：`.hanzi-tian-grid` 容器在任何网络或数据状态下始终保持 150×150 居中定位，绝不因缺少笔顺数据而发生横向挤压变形。
+   - 内部双层分流：动态笔顺加载层与静态 118px 楷书兜底层（`.hanzi-card__fallback-glyph`）共用田字格中心；无笔顺或加载失败时，118px 楷书居中呈现在田字格正中。
+   - 底部操作区降级：当遇到无笔顺的生僻字（如「瓲」）时，平滑替换不可点击的禁用重播按钮为优雅微标「暂无楷书笔顺数据」，杜绝灰色禁用态破坏质感。
+   - 缺省属性中性化：无拼音、部首或笔画时，占位破折号采用中性灰（`var(--zz-muted)`），避免误套红色类名。
+5. **轻量字典服务与零首屏按需加载 (`hanziDict.ts` & `hanzidict.json`)**
+   - 编写 `scripts/build-hanzidict.mjs`，从开源仓库 `sinobaba/hanzidict`（MIT License）拉取 8,105 规范汉字并编译为轻量字典 `src/data/hanzidict.json`（约 640KB）。
+   - 在 `src/services/hanziDict.ts` 中采用 `const dict = await import('@/data/hanzidict.json')` 懒加载，首屏主入口体积零增长；生僻字或古籍异体字如实提示「暂无收录释义」，杜绝 AI 编造。
+6. **测试与自动化**
+   - 新增 `tests/hanzi-explore.spec.ts`：覆盖规范字、生僻字（缺笔顺降级）、落字悬停激活、双栏弹窗渲染与 Esc 关闭（共 6 项断言，全套 144 项单测全绿）。
+   - 新增 `e2e/home-explore.spec.ts`：端到端真实浏览器验证落字悬停暂停、点击弹窗、笔顺重播、生僻字「瓲」降级截图、格子等大对齐与无空白田字格（共 3 项 E2E 测试全部通过）。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：10 个测试套件、144 项 Vitest 单元与组件测试全部通过（耗时 4.49s）。
+- `npm run test:e2e`：13 项 Playwright Chromium 端到端真实浏览器测试（含正常字、生僻字「瓲」与「聂」双格子 1:1 正方形对齐断言）全部通过（耗时 45.0s）。
+- `npm run build`：生产环境打包成功，`hanzidict` 与 `hanzi-writer` 均作为独立 chunk 按需打包，构建耗时 1.41s。
+
+---
+
+## 2026-11-04 · 卷轴模式工具栏收敛与设置浮层优化
+
+### 改动内容
+
+1. **移除常驻胶囊式工具栏**
+   - 彻底移除了 `ReadingView.vue` 卷轴模式下上方悬浮的 `.scroll-toolbar` 常驻胶囊条及其全部样式代码，释放卷轴上方的留白与纵向展开感。
+2. **收敛至「卷轴设置」Popover 浮层**
+   - 新增 `src/components/studio/ScrollSettingsPopover.vue` 组件，基于 `reka-ui` 的 `PopoverRoot` / `PopoverTrigger` / `PopoverPortal` / `PopoverContent` 以及 `lucide-vue-next` 的 `SlidersHorizontal` 图标。
+   - 触发按钮位于卷轴区域上方右侧（`top: 9px; right: max(28px, calc((100% - var(--zz-container)) / 2 + var(--zz-gutter)))`），与整站栅格自然对齐，采用半透明宣纸白、细墨线、低对比度文字，不抢视觉焦点。
+   - 浮层宽度紧凑（260px），包含文章、背景色、字体、字号原有四项配置，参数即改即生效（无需额外确认）。
+   - **样式隔离与 Portal 穿透治理**：由于 `PopoverPortal` 会将 `PopoverContent` 挂载至 `document.body` 顶层节点，Vue `<style scoped>` 的属性哈希无法作用于传送后的 DOM。因此将 `.scroll-settings-popover` 及其子控件样式置于独立的非 scoped `<style lang="scss">` 块中，彻底解决背景透明及文字重叠问题，确保宣纸背景 `var(--zz-paper-ui)`、墨线边框与立体柔和阴影稳定生效。
+   - 支持按 Esc 键关闭、点击浮层外部自动关闭、Tab 键无障碍焦点流。点击选择文章时关闭浮层并无缝唤出文选抽屉。
+3. **书本模式与顶栏模式切换隔离**
+   - 严格保持顶部居中 `<div class="reading-topbar">` 中的「书本 / 卷轴」切换按钮位置、样式和 Teleport 目标不变。
+   - 书本模式（`mode === 'book'`）的 DOM 结构与侧边工具轨 `.rail` 保持完全一致，不作任何触碰。
+4. **测试补充与适配**
+   - 新增 `tests/scroll-settings.spec.ts` 单元与集成测试，覆盖 Popover 组件渲染、各配置项事件派发、以及页面级别旧工具栏移除验证。
+   - 更新 `e2e/scroll.spec.ts`：适配收敛为「卷轴设置」按钮后的流程，验证旧胶囊工具栏不存在、右侧设置入口唯一性以及 Esc 键关闭能力。
+
+### 实际执行的验证命令与结果
+
+- `npm run typecheck`：`vue-tsc -b --noEmit` 0 错误通过。
+- `npm run lint`：`eslint .` 0 错误、0 警告通过。
+- `npm run test`：9 个测试套件、138 项 Vitest 单元与组件测试全部通过（耗时 4.62s）。
+- `npm run test:e2e`：10 项 Playwright Chromium 端到端真实浏览器测试全部通过（耗时 34.5s）。
+- `npm run build`：生产环境打包成功，构建耗时 1.09s。
+
+---
+
 ## 2026-11-03 · 核心阅读正确性、古籍标点禁则与端到端自动化重构
 
 ### 改动内容
@@ -839,7 +1088,31 @@ npm run build       → ✓ built in 828ms
 ## 2026-11-03 · 卷轴排版密致化重构、拖尾钤印与大字规制
 
 - **卷尾拖尾钤印**：彻底废止生硬灰底「终」字标识；卷首只留标题与作者题署，更加开阔清朗；在文章左侧开辟 180px 拖尾留白，在下三分之一压角位钤盖朱红双边「字在」方印。
-- **行距极密化对标**：直接参考黄令东老师字体原版演示站点（`https://rg-font.netlify.app/` 与 `https://qiji-font.netlify.app/`），草书 `--scroll-leading` 下探至 `1.10`，正书收敛至 `1.15`，行书收敛至 `1.12`；段落外边距归零；句读内嵌字角（`top: 72%`, `left: 82%`），再现古帖“密不透风、行气贯通”的古典视觉。
+- **行距极密化对标**：直接参考黄令东老师字体原版演示站点（`https://rg-font.netlify.app/` 与 `https://qiji-font.netlify.app/`），草书 `--scroll-leading` 下探至 `1.10`，正书收敛至 `1.15`，行书收敛至 `1.12`；段落外边距归零；句读内嵌字角（`top: 72%`, `left: 94%`），再现古帖“密不透风、行气贯通”的古典视觉。
 - **大字号规制**：默认字号调整为 55px，滑块上限提升至 70px，支持大字古法手卷排版。
+- **天头地脚上下均等对称**：消除书本册页的非对称天大地下留白残留，将卷轴外层装裱框架 `.scroll-frame` 上下内边距统一收束为 `42px 32px`，内层宣纸 `.scroll-paper` 统一规范为 `clamp(24px, 4vh, 48px) 62px`，矮屏媒体查询下同步对称，手卷展卷视觉天地完全平正均衡。
+- **顶栏层级解耦与案头悬浮控制岛（方案 A）**：顶栏恢复中正纯净，恒定居中仅呈现 `[ 书本 | 卷轴 ]` 模式分段按钮；长卷专用参数（文章、纸色、字体、字号）下沉至长卷上方正中，重构为温润半透明宣纸质感（磨砂微毛玻璃 + 细墨线分隔）的案头悬浮工具岛，控件等高美化，彻底解决控件堆叠拥挤感。
 - **验证通过**：全量 135 项单元测试与 10 项 Playwright E2E 测试 100% 绿灯。
+
+## 2026-11-04 · 首页「汉字探索」第一版与视觉精致化调优
+
+- **落字单字悬停感应与点击激活**：
+  - 将落字升级为可访问 `<button>` 语义，结合 CSS Compositor 在 `:hover`、`:focus-visible` 以及 `.glyph-field__item--active` 时应用 `animation-play-state: paused` 与浓墨高对比度，鼠标移开或关闭弹窗后平滑继续下落，保持 60fps 硬件加速；
+  - 治理 `.home__stage` 与 `.glyph-field` 的 `pointer-events` 分层穿透，彻底解决背景落字点击被遮挡问题，同时确保中央「入字间」CTA 点击跳转 100% 灵敏顺畅。
+- **双栏汉字探索弹窗（HanziExploreDialog.vue）**：
+  - **左栏（原字体字形对照）**：静态展示该字在原飘落字体（如汇文明朝体、秋空火宋、霞鹜文楷、齐伋体等）下的字形与字体名称；字号放大至 118px 舒展对齐，纯净排版；
+  - **右栏（Hanzi Writer 规范楷书与田字格）**：动态加载 `hanzi-writer`，内嵌标准习字格（外框与中心虚线十字），支持朱砂部首与墨色笔迹播放及重新播放；针对未收录字符优雅降级展示提示，杜绝 AI 编造；
+  - **下方汉字属性与释义**：呈现拼音（17px 加粗）、部首（15px）、笔画数（15px）及中文释义（15px，行高 1.68）；
+  - **精简优雅的数据来源链接**：底部精简为直达 GitHub 仓库的外链（`HanziDict ↗ · Hanzi Writer ↗`），注明 MIT 开源授权。
+- **按需分包与零首屏负担（Code Splitting）**：
+  - 8,105 规范字字典 `hanzidict.json` 与 `hanzi-writer` 均采用 `await import(...)` 懒加载，打包生成独立 chunk，首页主入口脚本保持零体积污染。
+- **视觉反馈二次精致化调优**：
+  - 按用户标注彻底精简移除：左栏顶部「原落字字体」微标、右栏顶部「规范笔顺」微标、左栏底部「首页动态落字字形」文字说明及底部冗长学术免责注脚；
+  - 原落字字体字号由 78px 放大至 118px 对齐楷书，并在楷书背景加入精确 SVG 田字格；
+  - 数据来源直通 GitHub，样式清雅克制。
+- **全量测试与验证**：
+  - 新增 `tests/hanzi-explore.spec.ts`（5 项用例）与 `e2e/home-explore.spec.ts`；
+  - 全套 10 个测试套件 143 项 Vitest 测试 100% 通过；
+  - 11 项 Playwright E2E 真实浏览器测试全绿（涵盖落字悬停暂停、点击弹窗、笔顺重播、Esc 键盘关闭及入字间跳转）；
+  - `npm run typecheck`、`npm run lint` 与 `npm run build` 均 0 错误通过，无任何样式破坏与性能回退。
 

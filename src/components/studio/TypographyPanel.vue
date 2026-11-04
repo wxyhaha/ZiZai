@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { Info } from 'lucide-vue-next'
 import { SliderRoot, SliderThumb, SliderTrack, SliderRange } from 'reka-ui'
-import type { LayoutMode } from '@/types'
+import type { LayoutMode, CharVariant } from '@/types'
 import {
   paperThemes,
   defaultPaperThemeId,
@@ -43,6 +43,7 @@ const props = withDefaults(
     scriptStyle?: ScriptStyleId
     judouMode?: boolean
     woodblockFrame?: boolean
+    charVariant?: CharVariant
   }>(),
   {
     paperTheme: defaultPaperThemeId,
@@ -51,6 +52,7 @@ const props = withDefaults(
     scriptStyle: defaultScriptStyleId,
     judouMode: true,
     woodblockFrame: true,
+    charVariant: 'traditional',
   },
 )
 
@@ -67,6 +69,7 @@ const emit = defineEmits<{
   'update:scriptStyle': [value: ScriptStyleId]
   'update:judouMode': [value: boolean]
   'update:woodblockFrame': [value: boolean]
+  'update:charVariant': [value: CharVariant]
   reset: []
 }>()
 
@@ -245,6 +248,31 @@ function resetAll() {
           @click="handleLayoutChange('vertical')"
         >
           竖排
+        </button>
+      </div>
+    </fieldset>
+
+    <!-- 字式规范 -->
+    <fieldset class="direction">
+      <legend class="direction__legend">字式规范</legend>
+      <div class="direction__options">
+        <button
+          type="button"
+          class="direction__button"
+          :class="{ 'is-active': (props.charVariant ?? 'traditional') === 'traditional' }"
+          :aria-pressed="(props.charVariant ?? 'traditional') === 'traditional'"
+          @click="emit('update:charVariant', 'traditional')"
+        >
+          繁体正字
+        </button>
+        <button
+          type="button"
+          class="direction__button"
+          :class="{ 'is-active': props.charVariant === 'simplified' }"
+          :aria-pressed="props.charVariant === 'simplified'"
+          @click="emit('update:charVariant', 'simplified')"
+        >
+          通行简体
         </button>
       </div>
     </fieldset>

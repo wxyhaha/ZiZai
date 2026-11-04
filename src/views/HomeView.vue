@@ -1,14 +1,42 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import FallingGlyphs from '@/components/home/FallingGlyphs.vue'
+import HanziExploreDialog from '@/components/home/HanziExploreDialog.vue'
+import type { FallingGlyph } from '@/composables/useFallingGlyphs'
 
 // 首页字形子集与赏字页面字体资源分开，按路由加载。
 import '@/styles/fonts/home-glyphs.scss'
+
+const selectedGlyph = ref<FallingGlyph | null>(null)
+const isExploreOpen = ref(false)
+
+function handleSelectGlyph(glyph: FallingGlyph) {
+  selectedGlyph.value = glyph
+  isExploreOpen.value = true
+}
+
+function handleExploreClose() {
+  selectedGlyph.value = null
+  if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+}
+
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __openExplore?: (g: unknown) => void }).__openExplore = (g) => {
+    selectedGlyph.value = g as FallingGlyph
+    isExploreOpen.value = true
+  }
+}
 </script>
 
 <template>
   <div class="home zz-grain">
-    <FallingGlyphs />
+    <FallingGlyphs
+      :active-glyph-id="selectedGlyph?.id"
+      @select="handleSelectGlyph"
+    />
 
     <main id="main" class="home__stage">
       <div class="hero">
@@ -22,6 +50,13 @@ import '@/styles/fonts/home-glyphs.scss'
         </RouterLink>
       </div>
     </main>
+
+    <!-- 汉字探索双栏弹窗 -->
+    <HanziExploreDialog
+      v-model:open="isExploreOpen"
+      :glyph="selectedGlyph"
+      @close="handleExploreClose"
+    />
   </div>
 </template>
 
@@ -43,6 +78,7 @@ import '@/styles/fonts/home-glyphs.scss'
     display: grid;
     min-height: 0;
     place-items: center;
+    pointer-events: none;
   }
 }
 
@@ -54,6 +90,7 @@ import '@/styles/fonts/home-glyphs.scss'
   align-items: center;
   gap: 38px;
   text-align: center;
+  pointer-events: auto;
 
   &__title {
     display: flex;

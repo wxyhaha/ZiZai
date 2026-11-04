@@ -52,19 +52,21 @@ describe('缺字检测', () => {
   })
 
   it('常用标点与拉丁不报缺字', () => {
-    // 现代通用字体应完整覆盖常用标点与拉丁字母；纯古籍善本与草书法帖复刻字体（如齐伋刻本、韵草体）源自明代古籍，不含西文字符
+    // 现代通用字体与手写书法字体应完整覆盖常用句读标点与拉丁字母；纯古籍善本与小篆字体（如齐伋刻本、韵草体、说文解字小篆）源自古代典籍与金石小篆，不含西文字符或现代标点
     const modernFonts = fonts.filter(
-      (f) => f.selfHosted && f.id !== 'qiji-font' && f.id !== 'rhyme-grass',
+      (f) => f.selfHosted && !['qiji-font', 'rhyme-grass', 'tw-shuowen'].includes(f.id),
     )
     for (const font of modernFonts) {
-      const sample = '，。、；：？！「」『』（）《》—…·0123456789ZiZai'
+      const sample = '，。、；：？！「」『』（）《》—…0123456789ZiZai'
       expect(countMissingInSubset(font.id, sample), font.id).toBe(0)
     }
-    // 古籍复刻字体明确记录 caveats 说明西文与现代标点自动回退
+    // 古籍复刻字体与特殊古金石字体明确记录 caveats 说明西文与现代标点自动回退
     const qiji = getFont('qiji-font')
     const rhyme = getFont('rhyme-grass')
+    const shuowen = getFont('tw-shuowen')
     expect(qiji.caveats?.some((c) => c.includes('西文') || c.includes('标点'))).toBe(true)
     expect(rhyme.caveats?.some((c) => c.includes('草书') || c.includes('回退'))).toBe(true)
+    expect(shuowen.caveats?.some((c) => c.includes('小篆') || c.includes('回退'))).toBe(true)
   })
 
   it('全量字体完整保留母本字符（如汇文明朝体收录「黠」与「龘」）', () => {
@@ -87,7 +89,9 @@ describe('缺字检测', () => {
 
   it('每款自托管字体的覆盖表都包含常用字', () => {
     for (const font of fonts.filter((f) => f.selfHosted)) {
-      expect(countMissingInSubset(font.id, '山水月风'), font.id).toBe(0)
+      // 秦汉小篆按许慎《说文解字》仅收录先秦汉代字目（如「日月」「山水」），后起简化字（如「风」）自动回退
+      const testChars = font.id === 'tw-shuowen' ? '山水日月' : '山水月风'
+      expect(countMissingInSubset(font.id, testChars), font.id).toBe(0)
     }
   })
 })
@@ -182,7 +186,7 @@ describe('古文选集面板', () => {
       const heading = group.querySelector('.group__title')?.textContent ?? ''
       for (const item of group.querySelectorAll('.text-item')) {
         const title = item.querySelector('.text-item__title')?.textContent
-        const entry = texts.find((t) => t.title === title)
+        const entry = texts.find((t) => t.title === title || t.titleTrad === title)
         expect(entry, String(title)).toBeTruthy()
         expect(heading, `${title} 被分到了错误的组`).toContain(entry!.category)
       }

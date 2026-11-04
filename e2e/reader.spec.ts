@@ -37,9 +37,9 @@ test.describe('字在 ZiZai · 核心端到端流程与排版真实性验证', (
     await expect(leftSlot).toHaveAttribute('data-page', '1')
     await expect(rightSlot).toHaveAttribute('data-page', '2')
 
-    // 验证标题与作者渲染
-    await expect(leftSlot.locator('.sheet__title')).toHaveText('项脊轩志')
-    await expect(leftSlot.locator('.sheet__meta')).toContainText('归有光')
+    // 验证标题与作者渲染（默认展示权威底本繁体正字）
+    await expect(leftSlot.locator('.sheet__title')).toHaveText('項脊軒志')
+    await expect(leftSlot.locator('.sheet__meta')).toContainText('歸有光')
 
     // 验证横排边缘翻页按钮：右侧为「下一组页面」，左侧为「上一组页面」（此时禁用）
     const rightTrigger = page.locator('.turn-trigger--right')
@@ -211,7 +211,7 @@ test.describe('字在 ZiZai · 核心端到端流程与排版真实性验证', (
     await expect(firstSheet.locator('.woodblock-frame--double')).toBeVisible()
     await expect(firstSheet.locator('.banxin')).toBeVisible()
     await expect(firstSheet.locator('.banxin .banxin__fishtail').first()).toBeVisible()
-    await expect(firstSheet.locator('.banxin .banxin__title')).toContainText('项脊轩志')
+    await expect(firstSheet.locator('.banxin .banxin__title')).toContainText('項脊軒志')
     await expect(firstSheet.locator('.banxin .banxin__leaf')).toContainText('叶')
 
     // 验证明清朱圈标记 .judou-mark--ming-qing 与朱砂红色调 (#b83625 -> rgb(184, 54, 37))
@@ -263,10 +263,10 @@ test.describe('字在 ZiZai · 核心端到端流程与排版真实性验证', (
     await page.locator('.tools__btn', { hasText: '文选' }).click()
     const textDialog = page.locator('[role="dialog"]')
     await expect(textDialog.locator('.panel__title')).toContainText('文选')
-    await page.locator('.text-item', { hasText: '论语·学而' }).click()
+    await page.locator('.text-item', { hasText: /論語·學而|论语·学而/ }).click()
 
     // 验证先秦文章自动联动：标点切换为先秦简帛钩识，版框默认素雅无框
-    await expect(page.locator('.book-spread [data-page="1"]')).toContainText('论语·学而')
+    await expect(page.locator('.book-spread [data-page="1"]')).toContainText(/論語·學而|论语·学而/)
     await expect(page.locator('.book-spread [data-page="1"] .punct-svg--hook').first()).toBeVisible()
     await expect(page.locator('.book-spread [data-page="1"] .woodblock-frame')).not.toBeVisible()
 
@@ -291,6 +291,47 @@ test.describe('字在 ZiZai · 核心端到端流程与排版真实性验证', (
     await expect(page.locator('.book-spread .prose').first()).toBeVisible()
     await expect(page.locator('.book-spread .judou-mark')).toHaveCount(0)
     await expect(page.locator('.book-spread .woodblock-frame')).toHaveCount(0)
+  })
+
+  test('配置选项中繁简体切换与即时渲染（默认繁体正字，顶栏不外露繁简按钮保持极简）', async ({ page }) => {
+    await page.goto('/studio')
+    const leftSlot = page.locator('.book-spread > .sheet--first')
+
+    // 1. 顶栏保持极简纯粹：仅展示 [ 书本 | 卷轴 ]，最外层不放置繁简切换
+    await expect(page.locator('.reading-variants')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '书本', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '卷轴', exact: true })).toBeVisible()
+
+    // 2. 默认展示权威底本之正体繁体字
+    await expect(leftSlot.locator('.sheet__title')).toHaveText('項脊軒志')
+    await expect(leftSlot.locator('.sheet__meta')).toContainText('歸有光')
+
+    // 3. 打开版式配置面板，字式规范默认为「繁体正字」
+    await page.locator('.tools__btn', { hasText: '版式' }).click()
+    const typographyDialog = page.locator('[role="dialog"]')
+    await expect(typographyDialog.locator('.panel__title')).toContainText('版式')
+
+    const tradOption = typographyDialog.locator('.direction__button', { hasText: '繁体正字' })
+    const simpOption = typographyDialog.locator('.direction__button', { hasText: '通行简体' })
+    await expect(tradOption).toHaveAttribute('aria-pressed', 'true')
+    await expect(simpOption).toHaveAttribute('aria-pressed', 'false')
+
+    // 4. 在配置选项中点击「通行简体」，书页即时响应切换为简体正字
+    await simpOption.click()
+    await expect(simpOption).toHaveAttribute('aria-pressed', 'true')
+    await expect(tradOption).toHaveAttribute('aria-pressed', 'false')
+    await expect(leftSlot.locator('.sheet__title')).toHaveText('项脊轩志')
+    await expect(leftSlot.locator('.sheet__meta')).toContainText('归有光')
+
+    // 5. 在配置选项中点击「繁体正字」，即刻无缝切回正体繁体
+    await tradOption.click()
+    await expect(tradOption).toHaveAttribute('aria-pressed', 'true')
+    await expect(leftSlot.locator('.sheet__title')).toHaveText('項脊軒志')
+    await expect(leftSlot.locator('.sheet__meta')).toContainText('歸有光')
+
+    // 关闭版式面板
+    await page.keyboard.press('Escape')
+    await expect(typographyDialog).not.toBeVisible()
   })
 
   test('时代装帧与书体规制双维重构：宋元白口、草书无栏避切笔、版本学考据弹窗与智能强联动', async ({ page }) => {

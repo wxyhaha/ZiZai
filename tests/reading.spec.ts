@@ -48,10 +48,11 @@ describe('赏字书页', () => {
   it('渲染默认作品的标题、作者与首屏正文', async () => {
     const wrapper = await mountStudio()
     const first = texts[0]
-    expect(wrapper.get('.sheet__title').text()).toBe(first.title)
-    expect(wrapper.get('.sheet__meta').text()).toContain(first.author)
+    expect(wrapper.get('.sheet__title').text()).toBe(first.titleTrad || first.title)
+    expect(wrapper.get('.sheet__meta').text()).toContain(first.authorTrad || first.author)
     expect(wrapper.findAll('.prose p').length).toBeGreaterThan(0)
-    expect(wrapper.find('.prose').text()).toContain(first.paragraphs[0].slice(0, 12))
+    const firstPara = first.paragraphsTrad?.[0] || first.paragraphs[0]
+    expect(wrapper.find('.prose').text()).toContain(firstPara.slice(0, 12))
     wrapper.unmount()
   })
 
@@ -114,7 +115,23 @@ describe('赏字书页', () => {
     wrapper.findComponent(TextPickerPanel).vm.$emit('select', texts[1].id)
     await nextTick()
     expect(wrapper.find('[data-page="1"]').exists()).toBe(true)
-    expect(wrapper.get('[data-page="1"]').text()).toContain(texts[1].title)
+    expect(wrapper.get('[data-page="1"]').text()).toContain(texts[1].titleTrad || texts[1].title)
+    wrapper.unmount()
+  })
+
+  it('支持繁简体一键切换，默认繁体，切换至简体后即刻更新正文与标题', async () => {
+    useReadingState().resetToDefaults()
+    const wrapper = await mountStudio()
+    expect(wrapper.get('.sheet__title').text()).toBe('項脊軒志')
+
+    const reading = useReadingState()
+    reading.setCharVariant('simplified')
+    await nextTick()
+    expect(wrapper.get('.sheet__title').text()).toBe('项脊轩志')
+
+    reading.setCharVariant('traditional')
+    await nextTick()
+    expect(wrapper.get('.sheet__title').text()).toBe('項脊軒志')
     wrapper.unmount()
   })
 
